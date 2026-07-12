@@ -1,0 +1,194 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-release:
+    # Must match the project's Swift 6.2 toolchain (SWIFT_DEFAULT_ACTOR_ISOLATION,
+    # @concurrent). macos-26 ships Xcode 26.x by default; older images (macos-15 =
+    # Xcode 16.4 / Swift 6.0) silently ignore those settings and fail to build.
+    # Deployment target is unaffected (stays MACOSX_DEPLOYMENT_TARGET = 14.0).
+    runs-on: macos-26
+
+    env:
+      MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' AIUsage/Info.plist)"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION}"
+
+      - name: Validate version matches project
+        shell: bash
+        run: |
+          PLIST_SHORT="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' AIUsage/Info.plist)"
+          PLIST_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' AIUsage/Info.plist)"
+          PBXPROJ_VERSION="$(grep 'MARKETING_VERSION = ' AIUsage.xcodeproj/project.pbxproj | head -1 | sed 's/.*= *//;s/ *;.*//')"
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "Tag:                     $TAG_VERSION"
+          echo "ShortVersionString:      $PLIST_SHORT"
+          echo "BundleVersion:           $PLIST_BUILD"
+          echo "MARKETING_VERSION:       $PBXPROJ_VERSION"
+
+          FAIL=0
+          if [[ "$PLIST_SHORT" != "$TAG_VERSION" ]]; then echo "MISMATCH: CFBundleShortVersionString"; FAIL=1; fi
+          if [[ "$PLIST_BUILD" != "$TAG_VERSION" ]]; then echo "MISMATCH: CFBundleVersion"; FAIL=1; fi
+          if [[ "$PBXPROJ_VERSION" != "$TAG_VERSION" ]]; then echo "MISMATCH: MARKETING_VERSION"; FAIL=1; fi
+          if [[ $FAIL -ne 0 ]]; then exit 1; fi
+
+      - name: Resolve SPM dependencies
+        shell: bash
+        run: |
+          xcodebuild -project AIUsage.xcodeproj -scheme AIUsage \
+            -destination "platform=macOS" \
+            -resolvePackageDependencies \
+            -derivedDataPath build/DerivedData
+
+      - name: Run QuotaBackend tests
+        shell: bash
+        working-directory: QuotaBackend
+        run: swift test
+
+      - name: Run Claude proxy regression
+        shell: bash
+        run: ./scripts/run_claude_proxy_regression.sh
+
+      - name: Run Claude Science auth proxy regression
+        shell: bash
+        run: ./scripts/run_science_auth_proxy_regression.sh
+
+      - name: Run CPA gateway regression
+        shell: bash
+        run: ./scripts/run_cliproxy_updater_regression.sh
+
+      # Import the stable self-signed code signing certificate (issue #35).
+      # Skipped automatically if the secret is absent, in which case the
+      # packaging script falls back to ad-hoc signing.
+      - name: Import code signing certificate
+        if: ${{ env.MACOS_CERT_P12_BASE64 != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/aiusage-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          CERT_PATH="$RUNNER_TEMP/aiusage-signing.p12"
+
+          echo "$MACOS_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERT_PATH" -P "$MACOS_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+
+          # Add to the search list so codesign can resolve the identity.
+          security list-keychains -d user -s "$KEYCHAIN_PATH" \
+            $(security list-keychains -d user | sed 's/[\"[:space:]]//g')
+
+          # A self-signed cert is untrusted, so `find-identity -v` (valid only)
+          # returns nothing; fall back to the unfiltered list. The `|| true`
+          # guards are required: under `set -o pipefail`, grep with no match
+          # exits non-zero and would abort the whole step.
+          echo "Code signing identities in imported keychain:"
+          security find-identity -p codesigning "$KEYCHAIN_PATH" || true
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | grep -oE '[0-9A-F]{40}' | head -1 || true)"
+          if [[ -z "$IDENTITY" ]]; then
+            IDENTITY="$(security find-identity -p codesigning "$KEYCHAIN_PATH" \
+              | grep -oE '[0-9A-F]{40}' | head -1 || true)"
+          fi
+          if [[ -z "$IDENTITY" ]]; then
+            echo "No code signing identity found in imported certificate" >&2
+            exit 1
+          fi
+
+          echo "MACOS_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "MACOS_SIGNING_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          rm -f "$CERT_PATH"
+          echo "Imported stable signing identity: $IDENTITY"
+
+      - name: Build macOS release artifacts
+        shell: bash
+        env:
+          SPARKLE_EDDSA_PRIVATE_KEY: ${{ secrets.SPARKLE_EDDSA_PRIVATE_KEY }}
+          REQUIRE_SPARKLE_SIGNING: "1"
+          # Tag builds must be stable-certificate signed (issue #35); fail loudly
+          # rather than shipping an ad-hoc release that re-prompts users.
+          REQUIRE_STABLE_SIGNING: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '0' }}
+        run: |
+          SPARKLE_TOOL="$(find build/DerivedData/SourcePackages/artifacts -name sign_update -path '*/bin/sign_update' | head -1)"
+          export SPARKLE_SIGN_TOOL="${SPARKLE_TOOL}"
+          ./scripts/package-release.sh "${{ steps.version.outputs.version }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: AIUsage-${{ steps.version.outputs.version }}-macOS
+          path: |
+            dist/AIUsage-${{ steps.version.outputs.version }}-macOS.zip
+            dist/AIUsage-${{ steps.version.outputs.version }}-macOS.dmg
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/AIUsage-${{ steps.version.outputs.version }}-macOS.zip
+            dist/AIUsage-${{ steps.version.outputs.version }}-macOS.dmg
+
+      - name: Update appcast.xml in repository
+        if: startsWith(github.ref, 'refs/tags/') && hashFiles('dist/appcast.xml') != ''
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main --depth=1
+          git checkout FETCH_HEAD
+          cp dist/appcast.xml appcast.xml
+          git add appcast.xml
+          git diff --cached --quiet && { echo "No appcast changes"; exit 0; }
+          git commit -m "Update appcast.xml for ${{ github.ref_name }}"
+          git push origin HEAD:main
+
+      - name: Verify appcast version
+        if: startsWith(github.ref, 'refs/tags/') && hashFiles('dist/appcast.xml') != ''
+        shell: bash
+        run: |
+          EXPECTED="${{ steps.version.outputs.version }}"
+          grep -q "<sparkle:shortVersionString>${EXPECTED}</sparkle:shortVersionString>" dist/appcast.xml
+          grep -q "<sparkle:version>${EXPECTED}</sparkle:version>" dist/appcast.xml
+          echo "Appcast verified: version ${EXPECTED}"

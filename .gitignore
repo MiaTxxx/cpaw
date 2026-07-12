@@ -1,0 +1,73 @@
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# === Xcode ===
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+.derived-data/
+.derivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# === Swift Package Manager ===
+.build/
+.swiftpm/
+Package.resolved
+Packages/
+
+# === VS Code / Cursor ===
+.vscode/
+.cursor/
+.claude/
+
+# === Environment & Secrets ===
+.env
+.env.*
+*.pem
+*.p12
+*.key
+
+# === Build artifacts ===
+*.app
+*.dmg
+*.zip
+dist/
+
+# === Code coverage ===
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+
+# === Dependency managers ===
+Pods/
+Carthage/
+
+# === Internal planning docs ===
+docs/NEXT_VERSION_TODO.md
+docs/PROVIDER_AUDIT_PLAN.md
+docs/CODEX_IDENTITY_FLOW.md
+docs/PROVIDER_DISCOVERY_AND_CREDENTIAL_DEEP_DIVE.md
+
+# === Tools (local dev scripts, not shipped) ===
+tools/
+
+# === Misc ===
+*.log
+*.tmp
+*.swp
+*~
+\#*\#
