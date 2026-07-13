@@ -176,6 +176,129 @@ public sealed class ProxyGoldenContractTests
     }
 
     [Fact]
+    public void OpenAI_chat_tools_and_tool_calls_use_typed_contracts()
+    {
+        using var requestEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("opencode/chat-request-tool-loop.json")));
+        var request = WireJson.Deserialize<OpenAIChatCompletionRequestWire>(
+            requestEnvelope.RootElement.GetProperty("input"));
+
+        var tool = Assert.Single(request.Tools ?? []);
+        Assert.Equal("function", tool.Type);
+        Assert.Equal("lookup_fixture", tool.Function.Name);
+        Assert.Equal("Reads synthetic fixture data", tool.Function.Description);
+        Assert.Equal("object", tool.Function.Parameters?["type"].GetString());
+
+        var requestToolCall = Assert.Single(request.Messages[2].ToolCalls ?? []);
+        Assert.Equal("call_fixture_001", requestToolCall.Id);
+        Assert.Equal("function", requestToolCall.Type);
+        Assert.Equal("lookup_fixture", requestToolCall.Function.Name);
+        Assert.Equal("{\"query\":\"usage\"}", requestToolCall.Function.Arguments);
+
+        using var responseEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("opencode/chat-response-cache-usage.json")));
+        var response = WireJson.Deserialize<OpenAIChatCompletionResponseWire>(
+            responseEnvelope.RootElement.GetProperty("input"));
+        var responseToolCall = Assert.Single(response.Choices[0].Message.ToolCalls ?? []);
+        Assert.Equal("call_fixture_002", responseToolCall.Id);
+        Assert.Equal("lookup_fixture", responseToolCall.Function.Name);
+
+        using var streamEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("opencode/stream-tool-delta.json")));
+        var stream = WireJson.Deserialize<OpenAIChatStreamChunkWire>(
+            streamEnvelope.RootElement.GetProperty("input"));
+        var deltaToolCall = Assert.Single(stream.Choices[0].Delta.ToolCalls ?? []);
+        Assert.Equal(0, deltaToolCall.Index);
+        Assert.Equal("call_fixture_stream_001", deltaToolCall.Id);
+        Assert.Equal("lookup_fixture", deltaToolCall.Function?.Name);
+        Assert.Equal("{\"query\":", deltaToolCall.Function?.Arguments);
+    }
+
+    [Fact]
+    public void OpenAI_chat_tool_contracts_preserve_unknown_properties_and_64_bit_delta_indices()
+    {
+        const string json = """
+            {
+              "model":"gpt-fixture-chat",
+              "messages":[{
+                "role":"assistant",
+                "tool_calls":[{
+                  "id":"call_fixture",
+                  "type":"future_function",
+                  "function":{
+                    "name":"lookup_fixture",
+                    "arguments":"{}",
+                    "future_function_hint":true
+                  },
+                  "future_call_hint":{"mode":"fixture"}
+                }]
+              }],
+              "tools":[{
+                "type":"future_function",
+                "function":{
+                  "name":"lookup_fixture",
+                  "parameters":{"type":"object"},
+                  "future_definition_hint":1
+                },
+                "future_tool_hint":"keep"
+              }]
+            }
+            """;
+
+        var request = WireJson.Deserialize<OpenAIChatCompletionRequestWire>(json);
+
+        var tool = Assert.Single(request.Tools ?? []);
+        Assert.Equal("future_function", tool.Type);
+        Assert.Equal(1, tool.Function.AdditionalProperties?["future_definition_hint"].GetInt32());
+        Assert.Equal("keep", tool.AdditionalProperties?["future_tool_hint"].GetString());
+        var call = Assert.Single(request.Messages[0].ToolCalls ?? []);
+        Assert.Equal("future_function", call.Type);
+        Assert.True(call.Function.AdditionalProperties?["future_function_hint"].GetBoolean());
+        Assert.Equal("fixture", call.AdditionalProperties?["future_call_hint"].GetProperty("mode").GetString());
+
+        const string deltaJson = """
+            {
+              "tool_calls":[{
+                "index":4294967296,
+                "id":"call_fixture_delta",
+                "type":"function",
+                "function":{"arguments":"{\"query\":"},
+                "future_delta_hint":null
+              }]
+            }
+            """;
+        var delta = WireJson.Deserialize<OpenAIChatDeltaWire>(deltaJson);
+        var deltaCall = Assert.Single(delta.ToolCalls ?? []);
+        Assert.Equal(4_294_967_296, deltaCall.Index);
+        Assert.Equal(JsonValueKind.Null, deltaCall.AdditionalProperties?["future_delta_hint"].ValueKind);
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(request));
+        Assert.Equal(
+            "keep",
+            roundTrip.RootElement.GetProperty("tools")[0].GetProperty("future_tool_hint").GetString());
+    }
+
+    [Theory]
+    [InlineData(typeof(OpenAIChatToolWire), "{\"type\":null,\"function\":{\"name\":\"fixture\"}}")]
+    [InlineData(typeof(OpenAIChatToolWire), "{\"type\":\"function\",\"function\":null}")]
+    [InlineData(typeof(OpenAIChatFunctionWire), "{\"name\":null}")]
+    [InlineData(typeof(OpenAIChatFunctionWire), "{\"name\":\"fixture\",\"parameters\":[]}")]
+    [InlineData(typeof(OpenAIChatToolCallWire), "{\"id\":null,\"type\":\"function\",\"function\":{\"name\":\"fixture\",\"arguments\":\"{}\"}}")]
+    [InlineData(typeof(OpenAIChatToolCallWire), "{\"id\":\"call\",\"type\":\"function\",\"function\":null}")]
+    [InlineData(typeof(OpenAIChatFunctionCallWire), "{\"name\":\"fixture\",\"arguments\":null}")]
+    [InlineData(typeof(OpenAIChatToolCallDeltaWire), "{}")]
+    [InlineData(typeof(OpenAIChatToolCallDeltaWire), "{\"index\":null}")]
+    public void OpenAI_chat_tool_contracts_reject_required_nulls_and_invalid_shapes(
+        Type contractType,
+        string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+
+        Assert.Null(exception.InnerException);
+        Assert.DoesNotContain(json, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void External_wire_preserves_unknown_root_properties()
     {
         const string json = """
