@@ -35,6 +35,72 @@
       "kind" : "json-transform",
       "path" : "contracts/provider/provider-usage-full.json",
       "sha256" : "3cdac3f0874f9d64b85fde4c17d0a789981a9443c11885dc91668fd38fd5ff6f"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-full.json",
+      "sha256" : "1cc382bd17fbac94627d22a209f889668bd6c9c67b6deca701699f43967da967"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-response-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-response-full.json",
+      "sha256" : "6248f0bd44468ec4432b3856b2e6d268816b6fb6be72407889fac89fe2c314c6"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-delta.json",
+      "sha256" : "5a0e2ac961e5b3630b2e5345f617c944b88474b06b334c45eabf3e2f20a0e03a"
+    },
+    {
+      "id" : "contracts/proxy/codex/responses-request-tool-loop",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/responses-request-tool-loop.json",
+      "sha256" : "189bcb95dd4f0d5ce7d11aa14b42baec7215c5a902be39ca5fd3bda46391be50"
+    },
+    {
+      "id" : "contracts/proxy/codex/responses-response-mixed",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/responses-response-mixed.json",
+      "sha256" : "37dc5720098347e23759cf4c1dd1111fb859e0428dffd08cfa91ccfc872e95e8"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-completed",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-completed.json",
+      "sha256" : "cfc1fe111d5e0f60642f77af3d856071b238003ade53e42f92590c6e57c7166a"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-request-tool-loop",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/chat-request-tool-loop.json",
+      "sha256" : "7bd838809931d1beb7ab6dec3335cd23c80fd8a3dced721a4cd8632d3353253f"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-response-cache-usage",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/chat-response-cache-usage.json",
+      "sha256" : "bbf2f5625585628bd16fe7eb1eff66e7d152fabc743c9c8b9285ff8d9eaa7c55"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-response-malformed-usage",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/chat-response-malformed-usage.json",
+      "sha256" : "722e37f272a67da4b210bfddf118f68a3e84a9342439c56679ddaaaa7b5c86a1"
+    },
+    {
+      "id" : "contracts/proxy/opencode/stream-tool-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/stream-tool-delta.json",
+      "sha256" : "7c6c6074963a15c989459249e40fdd2eb39701eb905ea74c35466644b0473af9"
+    },
+    {
+      "id" : "contracts/proxy/opencode/stream-usage-only",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/stream-usage-only.json",
+      "sha256" : "08498e4bb7bafc00e5c0aab2aa0b7fd2a6548e06c05d24836d252b022d067911"
     }
   ],
   "schemaVersion" : 1
