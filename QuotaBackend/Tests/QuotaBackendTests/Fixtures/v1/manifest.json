@@ -139,16 +139,58 @@
       "sha256" : "2ec6432f6bb1ba36f60ae2ad2ccca760c65b0b6a0582a15ebbc8ba03fbbeb035"
     },
     {
+      "id" : "contracts/proxy/claude/message-request-document-known",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-document-known.json",
+      "sha256" : "7b942c84b35828696c4b6e29908056c47800529d11a4c5a6219c9630724ced3e"
+    },
+    {
       "id" : "contracts/proxy/claude/message-request-full",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-full.json",
       "sha256" : "1cc382bd17fbac94627d22a209f889668bd6c9c67b6deca701699f43967da967"
     },
     {
+      "id" : "contracts/proxy/claude/message-request-image-sources",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-image-sources.json",
+      "sha256" : "f3587b43fd2f75a31c639b46d9a77a5dcccd95c2c21733af9854fe0acab3bbf3"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-system-blocks-message-blocks",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-system-blocks-message-blocks.json",
+      "sha256" : "96c8fe89a54c6ca1d4ccfd06491ed44963cd02f6317c02539835d33ae20c3a3e"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-system-string-message-text",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-system-string-message-text.json",
+      "sha256" : "c7d53f229dabe9338ce97554ecb2eaae7f930b4237e1aa9403c811a50001d913"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-tool-result-blocks-known",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-tool-result-blocks-known.json",
+      "sha256" : "be8aa7a7f6c3070b9b78ebcc395ca17a753568ca26b5c859a679d40f0bae649f"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-tool-result-string",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-tool-result-string.json",
+      "sha256" : "69131fd62653981f55d91dcf8910f4093cb414a4303c51d7b045d9319fd2dcf0"
+    },
+    {
       "id" : "contracts/proxy/claude/message-response-full",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-response-full.json",
       "sha256" : "6248f0bd44468ec4432b3856b2e6d268816b6fb6be72407889fac89fe2c314c6"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-response-redacted-thinking",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-response-redacted-thinking.json",
+      "sha256" : "e9715af48ee9400841cb0a2ccb798c8d368e720b426234d4873446f85f12fe06"
     },
     {
       "id" : "contracts/proxy/claude/openai-upstream-file-deleted",
