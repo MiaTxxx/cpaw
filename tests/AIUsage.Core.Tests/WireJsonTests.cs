@@ -40,7 +40,8 @@ public sealed class WireJsonTests
             Assert.Equal(32, result.MaxTokens);
             var message = Assert.Single(result.Messages);
             Assert.Equal("user", message.Role);
-            Assert.Equal("hello", message.Content.GetString());
+            var content = Assert.IsType<ClaudeTextMessageContentWire>(message.Content);
+            Assert.Equal("hello", content.Text);
         });
     }
 

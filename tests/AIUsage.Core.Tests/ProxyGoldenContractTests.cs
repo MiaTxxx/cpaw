@@ -12,7 +12,15 @@ public sealed class ProxyGoldenContractTests
     public static TheoryData<string, Type> ProxyFixtures => new()
     {
         { "claude/message-request-full.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-document-known.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-image-sources.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-known-optional-nulls-omitted.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-system-blocks-message-blocks.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-system-string-message-text.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-tool-result-blocks-known.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-tool-result-string.json", typeof(ClaudeMessageRequestWire) },
         { "claude/message-response-full.json", typeof(ClaudeMessageResponseWire) },
+        { "claude/message-response-redacted-thinking.json", typeof(ClaudeMessageResponseWire) },
         { "claude/stream-content-block-delta.json", typeof(ClaudeContentBlockDeltaEventWire) },
         { "claude/token-count-request-structured-system.json", typeof(ClaudeTokenCountRequestWire) },
         { "claude/token-count-response-large.json", typeof(ClaudeTokenCountResponseWire) },
@@ -59,6 +67,8 @@ public sealed class ProxyGoldenContractTests
 
     public static TheoryData<string, Type> ProxyDecodeFailureFixtures => new()
     {
+        { "claude/message-request-document-cache-control-invalid.json", typeof(ClaudeMessageRequestWire) },
+        { "claude/message-request-text-cache-control-invalid.json", typeof(ClaudeMessageRequestWire) },
         { "opencode/chat-request-invalid-content-scalar.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-request-content-part-missing-type.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-response-malformed-choice-rejected.json", typeof(OpenAIChatCompletionResponseWire) },
@@ -180,6 +190,311 @@ public sealed class ProxyGoldenContractTests
     {
         var exception = Assert.Throws<WireJsonException>(
             () => WireJson.Deserialize<OpenAIChatCompletionRequestWire>(json));
+
+        Assert.Null(exception.InnerException);
+        Assert.DoesNotContain(json, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Claude_message_content_uses_a_typed_union_with_known_block_variants()
+    {
+        var textRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-system-string-message-text.json");
+        var textContent = Assert.IsType<ClaudeTextMessageContentWire>(textRequest.Messages[0].Content);
+        Assert.Equal("Inspect the synthetic fixture.", textContent.Text);
+
+        var blocksRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-system-blocks-message-blocks.json");
+        var blocksContent = Assert.IsType<ClaudeBlocksMessageContentWire>(blocksRequest.Messages[0].Content);
+        var textBlock = Assert.IsType<ClaudeTextContentBlockWire>(Assert.Single(blocksContent.Blocks));
+        Assert.Equal("Preserve the message block array.", textBlock.Text);
+
+        var imageRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-image-sources.json");
+        var imageBlocks = Assert.IsType<ClaudeBlocksMessageContentWire>(imageRequest.Messages[0].Content).Blocks;
+        Assert.Collection(
+            imageBlocks,
+            block =>
+            {
+                var image = Assert.IsType<ClaudeImageContentBlockWire>(block);
+                Assert.Equal("base64", image.Source.Type);
+                Assert.Equal("image/png", image.Source.MediaType);
+                Assert.Equal("<fixture-base64-image>", image.Source.Data);
+            },
+            block =>
+            {
+                var image = Assert.IsType<ClaudeImageContentBlockWire>(block);
+                Assert.Equal("url", image.Source.Type);
+                Assert.Equal("https://example.test/fixture-image.png", image.Source.Url);
+            });
+
+        var documentRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-document-known.json");
+        var document = Assert.IsType<ClaudeDocumentContentBlockWire>(
+            Assert.Single(Assert.IsType<ClaudeBlocksMessageContentWire>(documentRequest.Messages[0].Content).Blocks));
+        Assert.Equal("text", document.Source["type"].GetString());
+        Assert.Equal("Fixture document", document.Title);
+        Assert.True(document.Citations?.GetProperty("enabled").GetBoolean());
+
+        var stringResultRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-tool-result-string.json");
+        var stringResult = Assert.IsType<ClaudeToolResultContentBlockWire>(
+            Assert.Single(Assert.IsType<ClaudeBlocksMessageContentWire>(stringResultRequest.Messages[0].Content).Blocks));
+        Assert.Equal("toolu_fixture_string", stringResult.ToolUseId);
+        Assert.Equal("Synthetic tool result", stringResult.Content?.GetString());
+        Assert.True(stringResult.IsError);
+
+        var blocksResultRequest = DeserializeFixture<ClaudeMessageRequestWire>(
+            "claude/message-request-tool-result-blocks-known.json");
+        var blocksResult = Assert.IsType<ClaudeToolResultContentBlockWire>(
+            Assert.Single(Assert.IsType<ClaudeBlocksMessageContentWire>(blocksResultRequest.Messages[0].Content).Blocks));
+        Assert.Equal(JsonValueKind.Array, blocksResult.Content?.ValueKind);
+        Assert.Equal(2, blocksResult.Content?.GetArrayLength());
+
+        var redactedResponse = DeserializeFixture<ClaudeMessageResponseWire>(
+            "claude/message-response-redacted-thinking.json");
+        var redacted = Assert.IsType<ClaudeRedactedThinkingContentBlockWire>(
+            Assert.Single(redactedResponse.Content));
+        Assert.Equal("<fixture-redacted-thinking>", redacted.Data);
+    }
+
+    [Fact]
+    public void Claude_unknown_content_blocks_preserve_the_complete_payload()
+    {
+        const string json = """
+            {
+              "role":"assistant",
+              "content":[{
+                "type":"future_block",
+                "nested":{"enabled":true},
+                "nullable":null
+              }]
+            }
+            """;
+
+        var message = WireJson.Deserialize<ClaudeMessageWire>(json);
+        var content = Assert.IsType<ClaudeBlocksMessageContentWire>(message.Content);
+        var unknown = Assert.IsType<ClaudeUnknownContentBlockWire>(Assert.Single(content.Blocks));
+
+        Assert.Equal("future_block", unknown.Type);
+        Assert.True(unknown.Value.GetProperty("nested").GetProperty("enabled").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, unknown.Value.GetProperty("nullable").ValueKind);
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(message));
+        Assert.Equal(
+            JsonValueKind.Null,
+            roundTrip.RootElement.GetProperty("content")[0].GetProperty("nullable").ValueKind);
+    }
+
+    [Fact]
+    public void Claude_known_content_blocks_do_not_allow_extension_data_to_shadow_reserved_fields()
+    {
+        static JsonElement Element<T>(T value) => JsonSerializer.SerializeToElement(value);
+
+        var cases = new (ClaudeContentBlockWire Block, string[] Present, string[] Absent)[]
+        {
+            (
+                new ClaudeTextContentBlockWire
+                {
+                    Text = "typed text",
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["text"] = Element("shadow"),
+                        ["cache_control"] = Element(new { type = "shadow" }),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "text"],
+                ["cache_control"]),
+            (
+                new ClaudeImageContentBlockWire
+                {
+                    Source = new ClaudeImageSourceWire
+                    {
+                        Type = "url",
+                        Url = "https://example.test/typed.png",
+                        AdditionalProperties = new Dictionary<string, JsonElement>
+                        {
+                            ["type"] = Element("shadow"),
+                            ["media_type"] = Element("shadow"),
+                            ["data"] = Element("shadow"),
+                            ["url"] = Element("https://example.test/shadow.png"),
+                            ["future_source"] = Element(true),
+                        },
+                    },
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["source"] = Element(new { type = "shadow" }),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "source"],
+                []),
+            (
+                new ClaudeDocumentContentBlockWire
+                {
+                    Source = new Dictionary<string, JsonElement> { ["type"] = Element("text") },
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["source"] = Element(new { type = "shadow" }),
+                        ["title"] = Element("shadow"),
+                        ["context"] = Element("shadow"),
+                        ["citations"] = Element(new { enabled = true }),
+                        ["cache_control"] = Element(new { type = "shadow" }),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "source"],
+                ["title", "context", "citations", "cache_control"]),
+            (
+                new ClaudeToolUseContentBlockWire
+                {
+                    Id = "toolu_typed",
+                    Name = "typed_tool",
+                    Input = new Dictionary<string, JsonElement> { ["query"] = Element("typed") },
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["id"] = Element("shadow"),
+                        ["name"] = Element("shadow"),
+                        ["input"] = Element(new { query = "shadow" }),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "id", "name", "input"],
+                []),
+            (
+                new ClaudeToolResultContentBlockWire
+                {
+                    ToolUseId = "toolu_typed",
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["tool_use_id"] = Element("shadow"),
+                        ["content"] = Element("shadow"),
+                        ["is_error"] = Element(true),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "tool_use_id"],
+                ["content", "is_error"]),
+            (
+                new ClaudeThinkingContentBlockWire
+                {
+                    Thinking = "typed thinking",
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["thinking"] = Element("shadow"),
+                        ["signature"] = Element("shadow"),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "thinking"],
+                ["signature"]),
+            (
+                new ClaudeRedactedThinkingContentBlockWire
+                {
+                    Data = "typed data",
+                    AdditionalProperties = new Dictionary<string, JsonElement>
+                    {
+                        ["type"] = Element("shadow"),
+                        ["data"] = Element("shadow"),
+                        ["future"] = Element(true),
+                    },
+                },
+                ["type", "data"],
+                []),
+        };
+
+        foreach (var testCase in cases)
+        {
+            using var serialized = JsonDocument.Parse(
+                JsonSerializer.Serialize<ClaudeContentBlockWire>(testCase.Block));
+            var root = serialized.RootElement;
+
+            Assert.Equal(testCase.Block.Type, root.GetProperty("type").GetString());
+            Assert.True(root.GetProperty("future").GetBoolean());
+            foreach (var propertyName in testCase.Present)
+            {
+                Assert.Single(root.EnumerateObject(), property => property.NameEquals(propertyName));
+            }
+
+            foreach (var propertyName in testCase.Absent)
+            {
+                Assert.False(root.TryGetProperty(propertyName, out _));
+            }
+
+            if (testCase.Block is ClaudeImageContentBlockWire)
+            {
+                var source = root.GetProperty("source");
+                Assert.Equal("url", source.GetProperty("type").GetString());
+                Assert.Equal("https://example.test/typed.png", source.GetProperty("url").GetString());
+                Assert.True(source.GetProperty("future_source").GetBoolean());
+                Assert.Single(source.EnumerateObject(), property => property.NameEquals("type"));
+                Assert.Single(source.EnumerateObject(), property => property.NameEquals("url"));
+                Assert.False(source.TryGetProperty("media_type", out _));
+                Assert.False(source.TryGetProperty("data", out _));
+            }
+        }
+    }
+
+    [Fact]
+    public void Claude_unknown_content_blocks_validate_and_preserve_their_discriminator()
+    {
+        static JsonElement Element<T>(T value) => JsonSerializer.SerializeToElement(value);
+
+        var unknown = new ClaudeUnknownContentBlockWire
+        {
+            Discriminator = "future_block",
+            Value = Element(new
+            {
+                type = "future_block",
+                nested = new { enabled = true },
+            }),
+            AdditionalProperties = new Dictionary<string, JsonElement>
+            {
+                ["type"] = Element("shadow"),
+                ["added"] = Element(new[] { 1, 2 }),
+            },
+        };
+
+        using var serialized = JsonDocument.Parse(
+            JsonSerializer.Serialize<ClaudeContentBlockWire>(unknown));
+        var root = serialized.RootElement;
+
+        Assert.Single(root.EnumerateObject(), property => property.NameEquals("type"));
+        Assert.Equal("future_block", root.GetProperty("type").GetString());
+        Assert.True(root.GetProperty("nested").GetProperty("enabled").GetBoolean());
+        Assert.Equal(2, root.GetProperty("added").GetArrayLength());
+
+        var mismatch = unknown with
+        {
+            Value = Element(new { type = "different_block" }),
+        };
+        Assert.Throws<JsonException>(() => JsonSerializer.Serialize<ClaudeContentBlockWire>(mismatch));
+    }
+
+    [Theory]
+    [InlineData(typeof(ClaudeMessageWire), "{\"role\":\"user\",\"content\":7}")]
+    [InlineData(typeof(ClaudeMessageWire), "{\"role\":\"user\",\"content\":[null]}")]
+    [InlineData(typeof(ClaudeMessageWire), "{\"role\":\"user\",\"content\":[{}]}")]
+    [InlineData(typeof(ClaudeMessageWire), "{\"role\":\"user\",\"content\":[{\"type\":null}]}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"text\",\"text\":null}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"image\",\"source\":null}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"image\",\"source\":{\"type\":null}}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"document\",\"source\":[]}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"tool_use\",\"id\":null,\"name\":\"fixture\",\"input\":{}}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"tool_use\",\"id\":\"toolu\",\"name\":\"fixture\",\"input\":[]}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"tool_result\",\"tool_use_id\":null}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"thinking\",\"thinking\":null}")]
+    [InlineData(typeof(ClaudeContentBlockWire), "{\"type\":\"redacted_thinking\",\"data\":null}")]
+    public void Claude_message_content_rejects_invalid_known_shapes(Type contractType, string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
 
         Assert.Null(exception.InnerException);
         Assert.DoesNotContain(json, exception.Message, StringComparison.Ordinal);
@@ -944,6 +1259,12 @@ public sealed class ProxyGoldenContractTests
         Assert.True(serializedBody.RootElement.GetProperty("future_error_field").GetBoolean());
         Assert.False(serializedWrapper.RootElement.TryGetProperty("RequestId", out _));
         Assert.Equal("req_fixture_header", transportError.RequestId);
+    }
+
+    private static T DeserializeFixture<T>(string relativePath)
+    {
+        using var envelope = JsonDocument.Parse(File.ReadAllBytes(GetFixturePath(relativePath)));
+        return WireJson.Deserialize<T>(envelope.RootElement.GetProperty("input"));
     }
 
     private static string GetFixturePath(string relativePath)
