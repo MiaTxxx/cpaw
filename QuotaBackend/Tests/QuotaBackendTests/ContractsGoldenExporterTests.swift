@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 37)
+        XCTAssertEqual(cases.count, 40)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -36,6 +36,7 @@ private enum ContractsV1GoldenCatalog {
         let credential = try makeCredential()
         let minimalCredential = try makeMinimalOAuthCredential()
         let safeCredentialMetadata = SafeAccountCredentialMetadataFixture(credential: credential)
+        let safeCredentialMetadataJSONValues = makeSafeCredentialMetadataJSONValues()
         let usage = makeUsage()
         let minimalUsage = makeMinimalUsage()
         let allJSONKindsUsage = makeAllJSONKindsUsage()
@@ -137,6 +138,11 @@ private enum ContractsV1GoldenCatalog {
                 value: safeCredentialMetadata
             ),
             .roundTrip(
+                id: "contracts/account/account-credential-metadata-json-values",
+                path: "contracts/account/account-credential-metadata-json-values.json",
+                value: safeCredentialMetadataJSONValues
+            ),
+            .roundTrip(
                 id: "contracts/account/account-credential-minimal-oauth",
                 path: "contracts/account/account-credential-minimal-oauth.json",
                 value: minimalCredential
@@ -155,6 +161,12 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/dashboard/dashboard-snapshot-mixed",
                 path: "contracts/dashboard/dashboard-snapshot-mixed.json",
                 value: snapshot
+            ),
+            .decodeFailure(
+                id: "contracts/dashboard/dashboard-snapshot-null-provider",
+                path: "contracts/dashboard/dashboard-snapshot-null-provider.json",
+                inputJSON: #"{"generatedAt":"2030-01-02T03:04:05Z","overview":{"generatedAt":"2030-01-02T03:04:05Z","activeProviders":0,"attentionProviders":0,"criticalProviders":0,"resetSoonProviders":0,"localCostMonthUsd":0,"localWeekTokens":0,"stats":[],"alerts":[]},"providers":[null]}"#,
+                as: DashboardSnapshot.self
             ),
             .decodeTransform(
                 id: "contracts/provider/provider-result-explicit-null-optionals",
@@ -208,6 +220,12 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/provider/provider-usage-minimal-offset-time",
                 path: "contracts/provider/provider-usage-minimal-offset-time.json",
                 value: minimalUsage
+            ),
+            .decodeFailure(
+                id: "contracts/provider/provider-usage-null-source-root",
+                path: "contracts/provider/provider-usage-null-source-root.json",
+                inputJSON: #"{"provider":"fixture-roots","label":"Roots Fixture","fetchedAt":"2030-01-02T03:04:05Z","source":{"mode":"local","type":"authFile","roots":["/fixture/root",null]},"extra":{}}"#,
+                as: ProviderUsage.self
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/message-request-full",
@@ -335,6 +353,27 @@ private enum ContractsV1GoldenCatalog {
     private static func makeMinimalOAuthCredential() throws -> AccountCredential {
         let json = #"{"id":"fixture-oauth-credential","providerId":"codex","authMethod":"oauth","credential":"<fixture-credential-oauth>","createdAt":"2030-01-02T11:04:05+08:00","metadata":{}}"#
         return try JSONDecoder().decode(AccountCredential.self, from: Data(json.utf8))
+    }
+
+    private static func makeSafeCredentialMetadataJSONValues() -> SafeAccountCredentialMetadataFixture {
+        SafeAccountCredentialMetadataFixture(
+            id: "fixture-safe-json-metadata",
+            providerId: "future-provider",
+            accountLabel: nil,
+            authMethod: .oauth,
+            createdAt: fixedTime,
+            lastUsedAt: nil,
+            metadata: [
+                "count": AnyCodable(7),
+                "enabled": AnyCodable(true),
+                "labels": AnyCodable([AnyCodable("alpha"), AnyCodable("beta")]),
+                "nested": AnyCodable([
+                    "ratio": AnyCodable(0.5),
+                    "region": AnyCodable("fixture-region"),
+                ] as [String: AnyCodable]),
+                "nullable": AnyCodable(NSNull()),
+            ]
+        )
     }
 
     private static func makeMinimalUsage() -> ProviderUsage {
@@ -634,7 +673,7 @@ private struct SafeAccountCredentialMetadataFixture: Codable {
     let authMethod: AuthMethod
     let createdAt: String
     let lastUsedAt: String?
-    let metadata: [String: String]
+    let metadata: [String: AnyCodable]
 
     init(credential: AccountCredential) {
         id = credential.id
@@ -643,7 +682,25 @@ private struct SafeAccountCredentialMetadataFixture: Codable {
         authMethod = credential.authMethod
         createdAt = credential.createdAt
         lastUsedAt = credential.lastUsedAt
-        metadata = credential.metadata
+        metadata = credential.metadata.mapValues { AnyCodable($0) }
+    }
+
+    init(
+        id: String,
+        providerId: String,
+        accountLabel: String?,
+        authMethod: AuthMethod,
+        createdAt: String,
+        lastUsedAt: String?,
+        metadata: [String: AnyCodable]
+    ) {
+        self.id = id
+        self.providerId = providerId
+        self.accountLabel = accountLabel
+        self.authMethod = authMethod
+        self.createdAt = createdAt
+        self.lastUsedAt = lastUsedAt
+        self.metadata = metadata
     }
 }
 
