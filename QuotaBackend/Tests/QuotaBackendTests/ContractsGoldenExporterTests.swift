@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 83)
+        XCTAssertEqual(cases.count, 91)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -355,6 +355,62 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/provider/provider-usage-null-source-root.json",
                 inputJSON: #"{"provider":"fixture-roots","label":"Roots Fixture","fetchedAt":"2030-01-02T03:04:05Z","source":{"mode":"local","type":"authFile","roots":["/fixture/root",null]},"extra":{}}"#,
                 as: ProviderUsage.self
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/entitlement-missing-values",
+                path: "normalization/quota/entitlement-missing-values.json",
+                input: UsageNormalizerGoldenScenarios.entitlementMissingValues,
+                sourceTest: "UsageNormalizerTests.testEntitlementWindowDefaultsMissingCountsToZero",
+                transform: UsageNormalizerGoldenScenarios.createEntitlementWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/entitlement-unlimited",
+                path: "normalization/quota/entitlement-unlimited.json",
+                input: UsageNormalizerGoldenScenarios.entitlementUnlimited,
+                sourceTest: "UsageNormalizerTests.testEntitlementWindowTreatsUnlimitedAsUnbounded",
+                transform: UsageNormalizerGoldenScenarios.createEntitlementWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/percent-derived-used",
+                path: "normalization/quota/percent-derived-used.json",
+                input: UsageNormalizerGoldenScenarios.percentDerived,
+                sourceTest: "UsageNormalizerTests.testPercentWindowDerivesUsedPercentFromRemaining",
+                transform: UsageNormalizerGoldenScenarios.createPercentWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/percent-explicit-used",
+                path: "normalization/quota/percent-explicit-used.json",
+                input: UsageNormalizerGoldenScenarios.percentExplicit,
+                sourceTest: "UsageNormalizerTests.testPercentWindowPreservesExplicitUsedPercent",
+                transform: UsageNormalizerGoldenScenarios.createPercentWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/quota-missing-used",
+                path: "normalization/quota/quota-missing-used.json",
+                input: UsageNormalizerGoldenScenarios.quotaMissingUsed,
+                sourceTest: "UsageNormalizerTests.testQuotaWindowDoesNotDeriveMissingUsedPercent",
+                transform: UsageNormalizerGoldenScenarios.createQuotaWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/quota-unlimited",
+                path: "normalization/quota/quota-unlimited.json",
+                input: UsageNormalizerGoldenScenarios.quotaUnlimited,
+                sourceTest: "UsageNormalizerTests.testQuotaWindowTreatsUnlimitedAsUnbounded",
+                transform: UsageNormalizerGoldenScenarios.createQuotaWindow
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/status-boundaries",
+                path: "normalization/quota/status-boundaries.json",
+                input: UsageNormalizerGoldenScenarios.statusBoundaries,
+                sourceTest: "UsageNormalizerTests.testStatusResolutionPreservesNilAndThresholdBoundaries",
+                transform: UsageNormalizerGoldenScenarios.resolveStatuses
+            ),
+            .behaviorTransform(
+                id: "normalization/quota/tightest-remaining",
+                path: "normalization/quota/tightest-remaining.json",
+                input: UsageNormalizerGoldenScenarios.smallestRemaining,
+                sourceTest: "UsageNormalizerTests.testSmallestRemainingIgnoresWindowsWithoutRemainingPercent",
+                transform: UsageNormalizerGoldenScenarios.pickSmallestRemaining
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/message-request-full",
@@ -1153,6 +1209,23 @@ private struct GoldenFixtureCase {
                 sourceTest: sourceTest,
                 inputData: encoded,
                 expectedData: reencoded
+            )
+        }
+    }
+
+    static func behaviorTransform<Input: Encodable, Expected: Encodable>(
+        id: String,
+        path: String,
+        input: Input,
+        sourceTest: String,
+        transform: @escaping (Input) -> Expected
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
+            try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: try encodeFixtureValue(input),
+                expectedData: try encodeFixtureValue(transform(input))
             )
         }
     }

@@ -2,6 +2,105 @@ import XCTest
 @testable import QuotaBackend
 
 final class UsageNormalizerTests: XCTestCase {
+    func testPercentWindowDerivesUsedPercentFromRemaining() {
+        let output = UsageNormalizerGoldenScenarios.createPercentWindow(
+            UsageNormalizerGoldenScenarios.percentDerived
+        )
+
+        XCTAssertEqual(output.label, "5h Window")
+        XCTAssertEqual(output.remainingPercent, 72)
+        XCTAssertEqual(output.usedPercent, 28)
+        XCTAssertEqual(output.value, "72% left")
+        XCTAssertEqual(output.note, "Resets after the fixture window")
+        XCTAssertEqual(output.resetAt, "2030-01-03T03:04:05Z")
+    }
+
+    func testPercentWindowPreservesExplicitUsedPercent() {
+        let output = UsageNormalizerGoldenScenarios.createPercentWindow(
+            UsageNormalizerGoldenScenarios.percentExplicit
+        )
+
+        XCTAssertEqual(output.label, "Weekly Window")
+        XCTAssertEqual(output.remainingPercent, 80)
+        XCTAssertEqual(output.usedPercent, 7)
+        XCTAssertEqual(output.value, "80% left")
+        XCTAssertEqual(output.note, "Explicit provider usage wins")
+    }
+
+    func testEntitlementWindowTreatsUnlimitedAsUnbounded() {
+        let output = UsageNormalizerGoldenScenarios.createEntitlementWindow(
+            UsageNormalizerGoldenScenarios.entitlementUnlimited
+        )
+
+        XCTAssertEqual(output.label, "Premium Requests")
+        XCTAssertNil(output.remainingPercent)
+        XCTAssertNil(output.usedPercent)
+        XCTAssertEqual(output.value, "Unlimited")
+        XCTAssertEqual(output.note, "Synthetic unlimited entitlement")
+        XCTAssertEqual(output.resetAt, "2030-01-04T03:04:05Z")
+    }
+
+    func testEntitlementWindowDefaultsMissingCountsToZero() {
+        let output = UsageNormalizerGoldenScenarios.createEntitlementWindow(
+            UsageNormalizerGoldenScenarios.entitlementMissingValues
+        )
+
+        XCTAssertEqual(output.label, "Standard Requests")
+        XCTAssertNil(output.remainingPercent)
+        XCTAssertNil(output.usedPercent)
+        XCTAssertEqual(output.value, "0 left")
+        XCTAssertEqual(output.note, "0 total")
+        XCTAssertNil(output.resetAt)
+    }
+
+    func testQuotaWindowTreatsUnlimitedAsUnbounded() {
+        let output = UsageNormalizerGoldenScenarios.createQuotaWindow(
+            UsageNormalizerGoldenScenarios.quotaUnlimited
+        )
+
+        XCTAssertEqual(output.label, "Completions")
+        XCTAssertNil(output.remainingPercent)
+        XCTAssertNil(output.usedPercent)
+        XCTAssertEqual(output.value, "Unlimited")
+        XCTAssertEqual(output.note, "No cap detected")
+    }
+
+    func testQuotaWindowDoesNotDeriveMissingUsedPercent() {
+        let output = UsageNormalizerGoldenScenarios.createQuotaWindow(
+            UsageNormalizerGoldenScenarios.quotaMissingUsed
+        )
+
+        XCTAssertEqual(output.label, "Model Family")
+        XCTAssertEqual(output.remainingPercent, 55)
+        XCTAssertNil(output.usedPercent)
+        XCTAssertEqual(output.value, "55% left")
+        XCTAssertEqual(output.note, "Provider omitted used percent")
+    }
+
+    func testSmallestRemainingIgnoresWindowsWithoutRemainingPercent() {
+        let output = UsageNormalizerGoldenScenarios.pickSmallestRemaining(
+            UsageNormalizerGoldenScenarios.smallestRemaining
+        )
+
+        XCTAssertEqual(output.remainingPercent, 17.5)
+    }
+
+    func testStatusResolutionPreservesNilAndThresholdBoundaries() {
+        let output = UsageNormalizerGoldenScenarios.resolveStatuses(
+            UsageNormalizerGoldenScenarios.statusBoundaries
+        )
+
+        XCTAssertEqual(output.entries.map(\.remainingPercent), [nil, 0, 12, 12.1, 30, 30.1, 100])
+        XCTAssertEqual(
+            output.entries.map(\.status),
+            ["healthy", "critical", "critical", "watch", "watch", "healthy", "healthy"]
+        )
+        XCTAssertEqual(
+            output.entries.map(\.statusLabel),
+            ["Active", "Critical", "Critical", "Watch", "Watch", "Healthy", "Healthy"]
+        )
+    }
+
     func testDashboardOverviewAggregatesAttentionResetAndCostSignals() {
         let now = Date()
         let soon = ISO8601DateFormatter().string(from: now.addingTimeInterval(3 * 60 * 60))
