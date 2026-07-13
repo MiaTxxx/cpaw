@@ -143,6 +143,85 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let codexOutputItemAddedEventJSON = #"""
+    {
+      "type": "response.output_item.added",
+      "output_index": 4294967296,
+      "item": {
+        "type": "function_call",
+        "id": "fc_fixture_added",
+        "call_id": "call_fixture_added",
+        "name": "lookup_fixture",
+        "arguments": "",
+        "status": "in_progress",
+        "created_by": "assistant",
+        "namespace": "fixture"
+      }
+    }
+    """#
+
+    static let codexOutputItemDoneEventJSON = #"""
+    {
+      "type": "response.output_item.done",
+      "output_index": 4294967297,
+      "item": {
+        "type": "function_call",
+        "id": "fc_fixture_done",
+        "call_id": "call_fixture_done",
+        "name": "lookup_fixture",
+        "arguments": "{\"query\":\"quota\"}",
+        "status": "completed"
+      }
+    }
+    """#
+
+    static let codexOutputTextDeltaEventJSON = #"""
+    {
+      "type": "response.output_text.delta",
+      "item_id": "msg_fixture_delta",
+      "output_index": 4294967298,
+      "content_index": 4294967299,
+      "delta": "Fixture 响应"
+    }
+    """#
+
+    static let codexReasoningSummaryTextDeltaEventJSON = #"""
+    {
+      "type": "response.reasoning_summary_text.delta",
+      "item_id": null,
+      "output_index": 4294967300,
+      "summary_index": null,
+      "delta": "Inspect the synthetic fixture first."
+    }
+    """#
+
+    static let codexFunctionCallArgumentsDeltaEventJSON = #"""
+    {
+      "type": "response.function_call_arguments.delta",
+      "item_id": null,
+      "output_index": 4294967301,
+      "delta": "{\"query\":\"fixture"
+    }
+    """#
+
+    static let codexFunctionCallArgumentsDoneEventJSON = #"""
+    {
+      "type": "response.function_call_arguments.done",
+      "item_id": "fc_fixture_arguments_done",
+      "output_index": 4294967302,
+      "arguments": null,
+      "name": null,
+      "item": {
+        "type": "function_call",
+        "id": "fc_fixture_arguments_done",
+        "call_id": "call_fixture_arguments_done",
+        "name": "lookup_fixture",
+        "arguments": "{\"query\":\"fixture\"}",
+        "status": "completed"
+      }
+    }
+    """#
+
     static let openAIChatRequestJSON = #"""
     {
       "model": "gpt-fixture-chat",

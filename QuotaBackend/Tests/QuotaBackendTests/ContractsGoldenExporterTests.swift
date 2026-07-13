@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 52)
+        XCTAssertEqual(cases.count, 58)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -424,6 +424,48 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/codex/stream-completed",
                 path: "contracts/proxy/codex/stream-completed.json",
                 value: codexResponsesCompleted
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-output-item-added",
+                path: "contracts/proxy/codex/stream-output-item-added.json",
+                inputJSON: ContractsProxyGoldenInputs.codexOutputItemAddedEventJSON,
+                as: OpenAIResponsesOutputItemAddedEvent.self,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIResponsesProxyFineGrainedToolStreamingAllowsPartialJSONAndMaxTokensStopReason"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-output-item-done",
+                path: "contracts/proxy/codex/stream-output-item-done.json",
+                inputJSON: ContractsProxyGoldenInputs.codexOutputItemDoneEventJSON,
+                as: OpenAIResponsesOutputItemDoneEvent.self,
+                sourceTest: "OpenAIResponsesTests.testResponsesStreamingUsesOutputItemDoneForToolCalls"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-output-text-delta",
+                path: "contracts/proxy/codex/stream-output-text-delta.json",
+                inputJSON: ContractsProxyGoldenInputs.codexOutputTextDeltaEventJSON,
+                as: OpenAIResponsesOutputTextDeltaEvent.self,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIResponsesProxyStreamingRoundTrip"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-reasoning-summary-text-delta",
+                path: "contracts/proxy/codex/stream-reasoning-summary-text-delta.json",
+                inputJSON: ContractsProxyGoldenInputs.codexReasoningSummaryTextDeltaEventJSON,
+                as: OpenAIResponsesReasoningSummaryTextDeltaEvent.self,
+                sourceTest: "OpenAIResponsesTests.testResponsesStreamingEmitsReasoningSummaryAndKeepsToolIndicesRelative"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-function-call-arguments-delta",
+                path: "contracts/proxy/codex/stream-function-call-arguments-delta.json",
+                inputJSON: ContractsProxyGoldenInputs.codexFunctionCallArgumentsDeltaEventJSON,
+                as: OpenAIResponsesFunctionCallArgumentsDeltaEvent.self,
+                sourceTest: "OpenAIResponsesTests.testResponsesStreamingNormalizesFunctionArgumentDeltaIndicesAfterReasoning"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/codex/stream-function-call-arguments-done",
+                path: "contracts/proxy/codex/stream-function-call-arguments-done.json",
+                inputJSON: ContractsProxyGoldenInputs.codexFunctionCallArgumentsDoneEventJSON,
+                as: OpenAIResponsesFunctionCallArgumentsDoneEvent.self,
+                sourceTest: "OpenAIResponsesTests.testResponsesStreamingNormalizesFunctionArgumentDeltaIndicesAfterReasoning"
             ),
             .roundTrip(
                 id: "contracts/proxy/opencode/chat-request-tool-loop",
