@@ -26,6 +26,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0B66CC67
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.Core.Tests", "tests\AIUsage.Core.Tests\AIUsage.Core.Tests.csproj", "{94C0BF61-C16C-4F30-8986-B632A69C98CC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.Application.Tests", "tests\AIUsage.Application.Tests\AIUsage.Application.Tests.csproj", "{E0732079-027F-4CD9-9A45-F8FAE123CC2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -76,11 +78,16 @@ Global
 		{94C0BF61-C16C-4F30-8986-B632A69C98CC}.Debug|x64.Build.0 = Debug|Any CPU
 		{94C0BF61-C16C-4F30-8986-B632A69C98CC}.Release|x64.ActiveCfg = Release|Any CPU
 		{94C0BF61-C16C-4F30-8986-B632A69C98CC}.Release|x64.Build.0 = Release|Any CPU
+		{E0732079-027F-4CD9-9A45-F8FAE123CC2C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E0732079-027F-4CD9-9A45-F8FAE123CC2C}.Debug|x64.Build.0 = Debug|Any CPU
+		{E0732079-027F-4CD9-9A45-F8FAE123CC2C}.Release|x64.ActiveCfg = Release|Any CPU
+		{E0732079-027F-4CD9-9A45-F8FAE123CC2C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{94C0BF61-C16C-4F30-8986-B632A69C98CC} = {0B66CC67-AE16-48B0-8F5D-872654B30151}
+		{E0732079-027F-4CD9-9A45-F8FAE123CC2C} = {0B66CC67-AE16-48B0-8F5D-872654B30151}
 	EndGlobalSection
 EndGlobal
