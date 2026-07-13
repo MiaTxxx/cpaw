@@ -497,6 +497,54 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/stream-usage-only.json",
       "sha256" : "08498e4bb7bafc00e5c0aab2aa0b7fd2a6548e06c05d24836d252b022d067911"
+    },
+    {
+      "id" : "normalization/quota/entitlement-missing-values",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/entitlement-missing-values.json",
+      "sha256" : "bacc1aebfba2ca1381010524d0f7993ebf9e0acbfee96ee7d5bb98536cfa3aa7"
+    },
+    {
+      "id" : "normalization/quota/entitlement-unlimited",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/entitlement-unlimited.json",
+      "sha256" : "7e94e82b2360a1686928bd45522369b089b871ffb843e4c24d72ec86ce9b4d2a"
+    },
+    {
+      "id" : "normalization/quota/percent-derived-used",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/percent-derived-used.json",
+      "sha256" : "b41a1d23b700b47adbe395bf60412ac09376a691cfa40a784a350fe320c0612c"
+    },
+    {
+      "id" : "normalization/quota/percent-explicit-used",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/percent-explicit-used.json",
+      "sha256" : "03e9a19b1dd638477f095207a346e2356c0e48509f1fbd78d0ce05aed14170b1"
+    },
+    {
+      "id" : "normalization/quota/quota-missing-used",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/quota-missing-used.json",
+      "sha256" : "317afeb3bfb68d02c29371f5ab4f2e57bb6585bbed6b081a755bffde69599ba9"
+    },
+    {
+      "id" : "normalization/quota/quota-unlimited",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/quota-unlimited.json",
+      "sha256" : "85645c0d2f4dfe0c0a055acc600aad782c0d162792533380b5f5d2be515f60e1"
+    },
+    {
+      "id" : "normalization/quota/status-boundaries",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/status-boundaries.json",
+      "sha256" : "ee6b2ae9a058cbe98815285a758c10b7b106cb07c76932dfda8e7fc472933be7"
+    },
+    {
+      "id" : "normalization/quota/tightest-remaining",
+      "kind" : "json-transform",
+      "path" : "normalization/quota/tightest-remaining.json",
+      "sha256" : "b6b3d77a8f88c002f54d901ac5bb87038d0b777cd74d413a2c2254983de0a5ce"
     }
   ],
   "schemaVersion" : 1
