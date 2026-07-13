@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 73)
+        XCTAssertEqual(cases.count, 80)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -66,6 +66,34 @@ private enum ContractsV1GoldenCatalog {
         let claudeResponse = try decode(
             ClaudeMessageResponse.self,
             from: ContractsProxyGoldenInputs.claudeMessageResponseJSON
+        )
+        let claudeStringSystemTextContentRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestStringSystemTextContentJSON
+        )
+        let claudeSystemBlocksMessageBlocksRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestSystemBlocksMessageBlocksJSON
+        )
+        let claudeImageSourcesRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestImageSourcesJSON
+        )
+        let claudeDocumentKnownRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestDocumentKnownJSON
+        )
+        let claudeToolResultStringRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestToolResultStringJSON
+        )
+        let claudeToolResultBlocksRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestToolResultBlocksJSON
+        )
+        let claudeRedactedThinkingResponse = try decode(
+            ClaudeMessageResponse.self,
+            from: ContractsProxyGoldenInputs.claudeMessageResponseRedactedThinkingJSON
         )
         let claudeStreamDelta = try decode(
             ClaudeContentBlockDeltaEvent.self,
@@ -337,6 +365,48 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/claude/message-response-full",
                 path: "contracts/proxy/claude/message-response-full.json",
                 value: claudeResponse
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-system-string-message-text",
+                path: "contracts/proxy/claude/message-request-system-string-message-text.json",
+                value: claudeStringSystemTextContentRequest,
+                sourceTest: "ClaudeProxyConverterTests.testConvertSystemMessage"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-system-blocks-message-blocks",
+                path: "contracts/proxy/claude/message-request-system-blocks-message-blocks.json",
+                value: claudeSystemBlocksMessageBlocksRequest,
+                sourceTest: "ClaudeProxyConverterTests.testDecodeStructuredSystemBlocksPreservesJoinedTextAndRawBlocks"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-image-sources",
+                path: "contracts/proxy/claude/message-request-image-sources.json",
+                value: claudeImageSourcesRequest,
+                sourceTest: "ClaudeProxyConverterTests.testConvertImageMessage"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-document-known",
+                path: "contracts/proxy/claude/message-request-document-known.json",
+                value: claudeDocumentKnownRequest,
+                sourceTest: "ClaudeProxyConverterTests.testConvertClaudeDocumentURLSourceFallsBackToExplicitText"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-tool-result-string",
+                path: "contracts/proxy/claude/message-request-tool-result-string.json",
+                value: claudeToolResultStringRequest,
+                sourceTest: "ClaudeProxyConverterTests.testConvertMultipleToolResultsPreservesEachToolMessage"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-tool-result-blocks-known",
+                path: "contracts/proxy/claude/message-request-tool-result-blocks-known.json",
+                value: claudeToolResultBlocksRequest,
+                sourceTest: "ClaudeProxyConverterTests.testConvertStructuredToolResultBlocksPreservesImageParts"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-response-redacted-thinking",
+                path: "contracts/proxy/claude/message-response-redacted-thinking.json",
+                value: claudeRedactedThinkingResponse,
+                sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockDecodesRedactedThinking"
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/stream-content-block-delta",

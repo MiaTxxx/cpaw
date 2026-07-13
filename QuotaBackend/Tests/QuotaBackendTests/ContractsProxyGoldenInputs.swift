@@ -98,6 +98,140 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let claudeMessageRequestStringSystemTextContentJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        { "role": "user", "content": "Inspect the synthetic fixture." }
+      ],
+      "system": "Use synthetic fixture data only.",
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageRequestSystemBlocksMessageBlocksJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            { "type": "text", "text": "Preserve the message block array." }
+          ]
+        }
+      ],
+      "system": [
+        { "type": "text", "text": "First fixture instruction." },
+        { "type": "text", "text": "Second fixture instruction.", "cache_control": { "type": "ephemeral" } }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageRequestImageSourcesJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "image",
+              "source": { "type": "base64", "media_type": "image/png", "data": "<fixture-base64-image>" }
+            },
+            {
+              "type": "image",
+              "source": { "type": "url", "url": "https://example.test/fixture-image.png" }
+            }
+          ]
+        }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageRequestDocumentKnownJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "document",
+              "source": { "type": "text", "media_type": "text/plain", "data": "Synthetic document body" },
+              "title": "Fixture document",
+              "context": "Known document branch",
+              "citations": { "enabled": true },
+              "cache_control": { "type": "ephemeral" }
+            }
+          ]
+        }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageRequestToolResultStringJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "toolu_fixture_string",
+              "content": "Synthetic tool result",
+              "is_error": true
+            }
+          ]
+        }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageRequestToolResultBlocksJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "toolu_fixture_blocks",
+              "content": [
+                { "type": "text", "text": "Synthetic structured result" },
+                {
+                  "type": "image",
+                  "source": { "type": "url", "url": "https://example.test/tool-result.png" }
+                }
+              ],
+              "is_error": false
+            }
+          ]
+        }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
+    static let claudeMessageResponseRedactedThinkingJSON = #"""
+    {
+      "id": "msg_fixture_redacted",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        { "type": "redacted_thinking", "data": "<fixture-redacted-thinking>" }
+      ],
+      "model": "claude-fixture-content",
+      "stop_reason": "end_turn",
+      "usage": { "input_tokens": 16, "output_tokens": 8 }
+    }
+    """#
+
     static let claudeContentBlockDeltaJSON = #"""
     {
       "type": "content_block_delta",

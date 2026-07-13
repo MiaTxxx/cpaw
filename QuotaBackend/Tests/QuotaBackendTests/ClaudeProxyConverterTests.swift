@@ -285,6 +285,22 @@ final class ClaudeProxyConverterTests: XCTestCase {
         }
     }
 
+    func testClaudeContentBlockDecodesRedactedThinking() throws {
+        let payload = Data(#"{"type":"redacted_thinking","data":"<fixture-redacted-thinking>"}"#.utf8)
+
+        let block = try JSONDecoder().decode(ClaudeContentBlock.self, from: payload)
+        guard case .redactedThinking(let redacted) = block else {
+            return XCTFail("Expected redacted thinking block")
+        }
+
+        XCTAssertEqual(redacted.data, "<fixture-redacted-thinking>")
+
+        let encoded = try JSONEncoder().encode(block)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertEqual(json["type"] as? String, "redacted_thinking")
+        XCTAssertEqual(json["data"] as? String, "<fixture-redacted-thinking>")
+    }
+
     func testConvertClaudeDocumentFileIdToOpenAIInputFilePart() throws {
         let converter = ClaudeToOpenAIConverter()
         let claudeRequest = ClaudeMessageRequest(
