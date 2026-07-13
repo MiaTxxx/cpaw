@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 17)
+        XCTAssertEqual(cases.count, 25)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -86,6 +86,31 @@ private enum ContractsV1GoldenCatalog {
         let codexResponsesCompleted = try decode(
             OpenAIResponsesCompletedEvent.self,
             from: ContractsProxyGoldenInputs.codexResponsesCompletedEventJSON
+        )
+        let claudeRateLimitError = ClaudeErrorResponse(
+            error: ClaudeError(type: "rate_limit_error", message: "Fixture rate limit reached"),
+            requestID: "req_fixture_429"
+        )
+        let claudeAPIError = ClaudeErrorResponse(
+            error: ClaudeError(type: "api_error", message: "Fixture upstream failure")
+        )
+        let openAIError = OpenAIErrorResponse(
+            error: OpenAIError(
+                message: "Fixture request was rejected",
+                type: "invalid_request_error",
+                code: "fixture_invalid_request"
+            )
+        )
+        let openAIMessageOnlyError = OpenAIErrorResponse(
+            error: OpenAIError(message: "Fixture upstream error", type: nil, code: nil)
+        )
+        let codexError = CodexErrorResponse(
+            error: CodexErrorResponse.Body(
+                message: "Fixture request was rejected",
+                type: "invalid_request_error",
+                code: "fixture_invalid_request"
+            ),
+            requestID: "req_fixture_codex"
         )
 
         return [
@@ -175,6 +200,48 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/proxy/opencode/stream-usage-only.json",
                 inputJSON: ContractsProxyGoldenInputs.openAIChatUsageOnlyStreamChunkJSON,
                 as: OpenAIStreamChunk.self
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/error-api-without-request-id",
+                path: "contracts/proxy/claude/error-api-without-request-id.json",
+                value: claudeAPIError
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/error-rate-limit-with-request-id",
+                path: "contracts/proxy/claude/error-rate-limit-with-request-id.json",
+                value: claudeRateLimitError
+            ),
+            .roundTrip(
+                id: "contracts/proxy/codex/error-all-fields",
+                path: "contracts/proxy/codex/error-all-fields.json",
+                value: codexError
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/error-all-fields",
+                path: "contracts/proxy/opencode/error-all-fields.json",
+                value: openAIError
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/error-message-only",
+                path: "contracts/proxy/opencode/error-message-only.json",
+                value: openAIMessageOnlyError
+            ),
+            .encodedSSELifecycle(
+                id: "contracts/proxy/claude/sse-lifecycle",
+                path: "contracts/proxy/claude/sse-lifecycle.json",
+                frames: ContractsSSEGoldenInputs.claudeLifecycleFrames
+            ),
+            .parsedSSELifecycle(
+                id: "contracts/proxy/codex/sse-lifecycle",
+                path: "contracts/proxy/codex/sse-lifecycle.json",
+                framing: .responsesEventData,
+                lines: ContractsSSEGoldenInputs.codexResponsesLines
+            ),
+            .parsedSSELifecycle(
+                id: "contracts/proxy/opencode/sse-lifecycle",
+                path: "contracts/proxy/opencode/sse-lifecycle.json",
+                framing: .chatDataLines,
+                lines: ContractsSSEGoldenInputs.openCodeChatLines
             ),
         ]
     }
@@ -359,6 +426,28 @@ private enum ContractsV1GoldenCatalog {
     }
 }
 
+enum GoldenSSEFraming: String, Codable {
+    case encodedFrames = "encoded-frames"
+    case responsesEventData = "responses-event-data"
+    case chatDataLines = "chat-data-lines"
+}
+
+struct GoldenSSEFrame: Codable, Equatable {
+    let event: String?
+    let data: String
+}
+
+private struct GoldenSSELifecycleInput: Codable {
+    let framing: GoldenSSEFraming
+    let lines: [String]?
+    let frames: [GoldenSSEFrame]?
+}
+
+private struct GoldenSSELifecycleExpected: Codable {
+    let frames: [GoldenSSEFrame]
+    let wire: String
+}
+
 private struct GoldenFixtureCase {
     let id: String
     let path: String
@@ -409,6 +498,101 @@ private struct GoldenFixtureCase {
                 expectedData: expectedData
             )
         }
+    }
+
+    static func encodedSSELifecycle(
+        id: String,
+        path: String,
+        frames: [GoldenSSEFrame],
+        sourceTest: String = "ContractsGoldenExporterTests.testCatalogEncodesDeterministically"
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
+            let input = GoldenSSELifecycleInput(framing: .encodedFrames, lines: nil, frames: frames)
+            let expected = GoldenSSELifecycleExpected(frames: frames, wire: encodeSSEWire(frames))
+            return try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: try encodeFixtureValue(input),
+                expectedData: try encodeFixtureValue(expected)
+            )
+        }
+    }
+
+    static func parsedSSELifecycle(
+        id: String,
+        path: String,
+        framing: GoldenSSEFraming,
+        lines: [String],
+        sourceTest: String = "ContractsGoldenExporterTests.testCatalogEncodesDeterministically"
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
+            let frames: [GoldenSSEFrame]
+            switch framing {
+            case .responsesEventData:
+                frames = parseResponsesFrames(lines)
+            case .chatDataLines:
+                frames = parseChatDataFrames(lines)
+            case .encodedFrames:
+                preconditionFailure("Use encodedSSELifecycle for encoded frames")
+            }
+
+            let input = GoldenSSELifecycleInput(framing: framing, lines: lines, frames: nil)
+            let expected = GoldenSSELifecycleExpected(frames: frames, wire: encodeSSEWire(frames))
+            return try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: try encodeFixtureValue(input),
+                expectedData: try encodeFixtureValue(expected)
+            )
+        }
+    }
+
+    private static func parseResponsesFrames(_ lines: [String]) -> [GoldenSSEFrame] {
+        var frames: [GoldenSSEFrame] = []
+        var currentEvent: String?
+        var dataLines: [String] = []
+
+        func flushFrame() {
+            guard !dataLines.isEmpty else { return }
+            frames.append(GoldenSSEFrame(event: currentEvent, data: dataLines.joined(separator: "\n")))
+            currentEvent = nil
+            dataLines = []
+        }
+
+        for line in lines {
+            if line.isEmpty {
+                flushFrame()
+            } else if line.hasPrefix("event:") {
+                flushFrame()
+                currentEvent = String(line.dropFirst("event:".count)).trimmingCharacters(in: .whitespaces)
+            } else if line.hasPrefix("data:") {
+                dataLines.append(String(line.dropFirst("data:".count)).trimmingCharacters(in: .whitespaces))
+            }
+        }
+
+        flushFrame()
+        return frames
+    }
+
+    private static func parseChatDataFrames(_ lines: [String]) -> [GoldenSSEFrame] {
+        lines.compactMap { line in
+            guard line.hasPrefix("data:") else { return nil }
+            return GoldenSSEFrame(
+                event: nil,
+                data: String(line.dropFirst("data:".count)).trimmingCharacters(in: .whitespaces)
+            )
+        }
+    }
+
+    private static func encodeSSEWire(_ frames: [GoldenSSEFrame]) -> String {
+        let encoder = SSEEncoder()
+        return frames.map { encoder.encode(event: $0.event, data: $0.data) }.joined()
+    }
+
+    private static func encodeFixtureValue<T: Encodable>(_ value: T) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(value)
     }
 
     private static func renderEnvelope(
