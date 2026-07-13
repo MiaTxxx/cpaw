@@ -39,13 +39,13 @@ jobs:
         run: swift test
 
       - name: Run Claude proxy regression
-        run: ./scripts/run_claude_proxy_regression.sh
+        run: bash ./scripts/run_claude_proxy_regression.sh
 
       - name: Run Claude Science auth proxy regression
-        run: ./scripts/run_science_auth_proxy_regression.sh
+        run: bash ./scripts/run_science_auth_proxy_regression.sh
 
       - name: Run CPA gateway regression
-        run: ./scripts/run_cliproxy_updater_regression.sh
+        run: bash ./scripts/run_cliproxy_updater_regression.sh
 
   windows-foundation:
     name: Windows foundation
