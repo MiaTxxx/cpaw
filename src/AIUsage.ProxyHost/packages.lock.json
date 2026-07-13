@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0-windows10.0.22621": {
+      "aiusage.application": {
+        "type": "Project",
+        "dependencies": {
+          "AIUsage.Contracts": "[1.0.0, )",
+          "AIUsage.Core": "[1.0.0, )"
+        }
+      },
+      "aiusage.contracts": {
+        "type": "Project"
+      },
+      "aiusage.core": {
+        "type": "Project"
+      },
+      "aiusage.infrastructure.windows": {
+        "type": "Project",
+        "dependencies": {
+          "AIUsage.Application": "[1.0.0, )",
+          "AIUsage.Contracts": "[1.0.0, )",
+          "AIUsage.Core": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

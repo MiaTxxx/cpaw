@@ -1,5 +1,13 @@
 # Third-Party Notices
 
+## Development and test dependencies
+
+The following packages are used only to build or test the Windows codebase and are not bundled into the AIUsage application binaries:
+
+- Microsoft.NET.Test.Sdk — MIT License — <https://github.com/microsoft/vstest>
+- xUnit.net — Apache License 2.0 — <https://github.com/xunit/xunit>
+- xunit.runner.visualstudio — Apache License 2.0 — <https://github.com/xunit/visualstudio.xunit>
+
 ## CLIProxyAPI
 
 AIUsage can download and run the official full CLIProxyAPI release as an optional local sidecar. CLIProxyAPI is not modified or compiled into AIUsage.

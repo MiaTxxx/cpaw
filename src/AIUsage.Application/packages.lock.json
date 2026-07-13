@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "aiusage.contracts": {
+        "type": "Project"
+      },
+      "aiusage.core": {
+        "type": "Project"
+      }
+    }
+  }
+}

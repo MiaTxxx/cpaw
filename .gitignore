@@ -45,6 +45,15 @@ Packages/
 *.dmg
 *.zip
 dist/
+bin/
+obj/
+artifacts/
+TestResults/
+.vs/
+*.user
+*.suo
+*.nupkg
+coverage/
 
 # === Code coverage ===
 *.profraw
