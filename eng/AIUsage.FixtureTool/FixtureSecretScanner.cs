@@ -132,8 +132,16 @@ public static partial class FixtureSecretScanner
             return false;
         }
 
-        return value.All(static character =>
-            char.IsAsciiLetterOrDigit(character) || character is '+' or '/' or '=' or '_' or '-');
+        if (!value.All(static character =>
+                char.IsAsciiLetterOrDigit(character) || character is '+' or '/' or '=' or '_' or '-'))
+        {
+            return false;
+        }
+
+        var entropy = value.GroupBy(static character => character)
+            .Select(group => (double)group.Count() / value.Length)
+            .Sum(static probability => -probability * Math.Log2(probability));
+        return entropy >= 4.5;
     }
 
     [GeneratedRegex("-----BEGIN [A-Z ]*PRIVATE KEY-----", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
