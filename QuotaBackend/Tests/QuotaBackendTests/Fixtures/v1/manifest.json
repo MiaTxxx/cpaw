@@ -37,6 +37,18 @@
       "sha256" : "3cdac3f0874f9d64b85fde4c17d0a789981a9443c11885dc91668fd38fd5ff6f"
     },
     {
+      "id" : "contracts/proxy/claude/error-api-without-request-id",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/error-api-without-request-id.json",
+      "sha256" : "18f540722e74f9f202a22e1b609f49ee6427a0291278c5a379031264e1eb929d"
+    },
+    {
+      "id" : "contracts/proxy/claude/error-rate-limit-with-request-id",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/error-rate-limit-with-request-id.json",
+      "sha256" : "9f136f10fe1e8ad4eb3aed4449cb63f2f93a3d2055098a11a2a4809ece78a425"
+    },
+    {
       "id" : "contracts/proxy/claude/message-request-full",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-full.json",
@@ -49,10 +61,22 @@
       "sha256" : "6248f0bd44468ec4432b3856b2e6d268816b6fb6be72407889fac89fe2c314c6"
     },
     {
+      "id" : "contracts/proxy/claude/sse-lifecycle",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/sse-lifecycle.json",
+      "sha256" : "b3fe4de706785e5c34a5cdabdfddf6063cd4ac3b3738e92f6f0eabf205325c81"
+    },
+    {
       "id" : "contracts/proxy/claude/stream-content-block-delta",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/stream-content-block-delta.json",
       "sha256" : "5a0e2ac961e5b3630b2e5345f617c944b88474b06b334c45eabf3e2f20a0e03a"
+    },
+    {
+      "id" : "contracts/proxy/codex/error-all-fields",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/error-all-fields.json",
+      "sha256" : "3637272244aa00e3f4b0819297cdec74e85b5cbbea1ea6e59a69c4512a803b1a"
     },
     {
       "id" : "contracts/proxy/codex/responses-request-tool-loop",
@@ -65,6 +89,12 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/codex/responses-response-mixed.json",
       "sha256" : "37dc5720098347e23759cf4c1dd1111fb859e0428dffd08cfa91ccfc872e95e8"
+    },
+    {
+      "id" : "contracts/proxy/codex/sse-lifecycle",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/sse-lifecycle.json",
+      "sha256" : "ff4a6d1f364ceba1e799dafceaaffbb39fbac3df361853a4f5f0989d9dc1a0c4"
     },
     {
       "id" : "contracts/proxy/codex/stream-completed",
@@ -89,6 +119,24 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/chat-response-malformed-usage.json",
       "sha256" : "722e37f272a67da4b210bfddf118f68a3e84a9342439c56679ddaaaa7b5c86a1"
+    },
+    {
+      "id" : "contracts/proxy/opencode/error-all-fields",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/error-all-fields.json",
+      "sha256" : "9f69dd9b43624d6578a1dafbbb097c4f456a9f9c848e1bfa6dcf74387b3a06dc"
+    },
+    {
+      "id" : "contracts/proxy/opencode/error-message-only",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/error-message-only.json",
+      "sha256" : "19792f056c21dfe717d6e790559d9ac30ecc545bf3c6b09842f89ee3c5ccfa01"
+    },
+    {
+      "id" : "contracts/proxy/opencode/sse-lifecycle",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/sse-lifecycle.json",
+      "sha256" : "e9d7b3ae1fee453fe19d18629ca9690c48cfefeb45a1eb000a1673e0af8222cf"
     },
     {
       "id" : "contracts/proxy/opencode/stream-tool-delta",

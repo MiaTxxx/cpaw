@@ -116,3 +116,29 @@ public sealed record OpenAIResponsesCompletedEventWire
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
+
+[JsonConverter(typeof(CodexErrorResponseWireJsonConverter))]
+public sealed record CodexErrorResponseWire
+{
+    [JsonPropertyName("error")]
+    public required CodexErrorBodyWire Error { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record CodexErrorBodyWire
+{
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("code")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}

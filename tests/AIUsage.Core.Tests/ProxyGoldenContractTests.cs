@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AIUsage.Core.Proxy.Protocols.Anthropic;
+using AIUsage.Core.Proxy.Protocols;
 using AIUsage.Core.Proxy.Protocols.OpenAIChat;
 using AIUsage.Core.Proxy.Protocols.OpenAIResponses;
 using Xunit;
@@ -13,11 +14,16 @@ public sealed class ProxyGoldenContractTests
         { "claude/message-request-full.json", typeof(ClaudeMessageRequestWire) },
         { "claude/message-response-full.json", typeof(ClaudeMessageResponseWire) },
         { "claude/stream-content-block-delta.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/error-api-without-request-id.json", typeof(ClaudeErrorResponseWire) },
+        { "claude/error-rate-limit-with-request-id.json", typeof(ClaudeErrorResponseWire) },
+        { "codex/error-all-fields.json", typeof(CodexErrorResponseWire) },
         { "codex/responses-request-tool-loop.json", typeof(OpenAIResponsesRequestWire) },
         { "codex/responses-response-mixed.json", typeof(OpenAIResponsesResponseWire) },
         { "codex/stream-completed.json", typeof(OpenAIResponsesCompletedEventWire) },
         { "opencode/chat-request-tool-loop.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-response-malformed-usage.json", typeof(OpenAIChatCompletionResponseWire) },
+        { "opencode/error-all-fields.json", typeof(OpenAIErrorResponseWire) },
+        { "opencode/error-message-only.json", typeof(OpenAIErrorResponseWire) },
         { "opencode/chat-response-cache-usage.json", typeof(OpenAIChatCompletionResponseWire) },
         { "opencode/stream-tool-delta.json", typeof(OpenAIChatStreamChunkWire) },
         { "opencode/stream-usage-only.json", typeof(OpenAIChatStreamChunkWire) },
@@ -131,6 +137,39 @@ public sealed class ProxyGoldenContractTests
         Assert.NotNull(chunk.Usage);
         Assert.Equal(0, chunk.Usage.PromptTokens);
         Assert.Null(chunk.Usage.PromptTokensDetails);
+    }
+
+    [Fact]
+    public void Codex_request_id_remains_transport_metadata_and_never_enters_JSON_body()
+    {
+        const string json = """
+            {
+              "error":{"message":"Fixture error","type":"fixture_error"},
+              "request_id":"req_fixture_header",
+              "future_error_field":true
+            }
+            """;
+        var body = JsonSerializer.Deserialize<CodexErrorResponseWire>(json);
+        Assert.NotNull(body);
+
+        body = body with
+        {
+            AdditionalProperties = new Dictionary<string, JsonElement>(body.AdditionalProperties ?? [])
+            {
+                ["error"] = JsonSerializer.SerializeToElement(new { message = "shadow" }),
+                ["request_id"] = JsonSerializer.SerializeToElement("req_shadow"),
+            },
+        };
+
+        var transportError = new ProxyHttpError<CodexErrorResponseWire>(429, body, "req_fixture_header");
+        using var serializedBody = JsonDocument.Parse(JsonSerializer.Serialize(body));
+        using var serializedWrapper = JsonDocument.Parse(JsonSerializer.Serialize(transportError));
+
+        Assert.False(serializedBody.RootElement.TryGetProperty("request_id", out _));
+        Assert.Single(serializedBody.RootElement.EnumerateObject(), property => property.NameEquals("error"));
+        Assert.True(serializedBody.RootElement.GetProperty("future_error_field").GetBoolean());
+        Assert.False(serializedWrapper.RootElement.TryGetProperty("RequestId", out _));
+        Assert.Equal("req_fixture_header", transportError.RequestId);
     }
 
     private static string GetFixturePath(string relativePath)
