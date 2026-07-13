@@ -57,6 +57,10 @@ jobs:
           path: ${{ runner.temp }}/swift-goldens
           if-no-files-found: error
 
+      - name: Verify committed fixtures match Swift output
+        shell: bash
+        run: diff -ru QuotaBackend/Tests/QuotaBackendTests/Fixtures/v1 "$RUNNER_TEMP/swift-goldens/v1"
+
       - name: Run Claude proxy regression
         run: bash ./scripts/run_claude_proxy_regression.sh
 

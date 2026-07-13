@@ -1,4 +1,41 @@
 {
-  "schemaVersion": 1,
-  "cases": []
+  "cases" : [
+    {
+      "id" : "contracts/account/account-credential-all-fields",
+      "kind" : "json-transform",
+      "path" : "contracts/account/account-credential-all-fields.json",
+      "sha256" : "ba285861e31b9a0e6a6e42d2f4f57d12f9e910dd1e991542f59dd5671cd1d46f"
+    },
+    {
+      "id" : "contracts/dashboard/dashboard-snapshot-mixed",
+      "kind" : "json-transform",
+      "path" : "contracts/dashboard/dashboard-snapshot-mixed.json",
+      "sha256" : "23c17f55a62185969a7fd7cfe65c42626931739c4d84d036c73d2605331bad24"
+    },
+    {
+      "id" : "contracts/provider/provider-result-failure-no-summary",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-result-failure-no-summary.json",
+      "sha256" : "8e044e8f46ada47b52b9ec176da03bf439c0e6f3a3574d15c07528b0324b2bcf"
+    },
+    {
+      "id" : "contracts/provider/provider-result-success",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-result-success.json",
+      "sha256" : "8b20c013263072732dd1c9f0157156d1ada9a2eccac0ca639c92784324cd8aa7"
+    },
+    {
+      "id" : "contracts/provider/provider-summary-full",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-summary-full.json",
+      "sha256" : "d76aca856965750979bbfa222871c6e27e0abb81fa158aeb3c2bad6dcd38c1f5"
+    },
+    {
+      "id" : "contracts/provider/provider-usage-full",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-usage-full.json",
+      "sha256" : "3cdac3f0874f9d64b85fde4c17d0a789981a9443c11885dc91668fd38fd5ff6f"
+    }
+  ],
+  "schemaVersion" : 1
 }
