@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 6)
+        XCTAssertEqual(cases.count, 15)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -51,6 +51,42 @@ private enum ContractsV1GoldenCatalog {
             error: "[not_logged_in] Fixture credentials are unavailable"
         )
         let snapshot = makeDashboardSnapshot(success: success, failure: failure)
+        let claudeRequest = try decode(
+            ClaudeMessageRequest.self,
+            from: ContractsProxyGoldenInputs.claudeMessageRequestJSON
+        )
+        let claudeResponse = try decode(
+            ClaudeMessageResponse.self,
+            from: ContractsProxyGoldenInputs.claudeMessageResponseJSON
+        )
+        let claudeStreamDelta = try decode(
+            ClaudeContentBlockDeltaEvent.self,
+            from: ContractsProxyGoldenInputs.claudeContentBlockDeltaJSON
+        )
+        let openAIChatRequest = try decode(
+            OpenAIChatCompletionRequest.self,
+            from: ContractsProxyGoldenInputs.openAIChatRequestJSON
+        )
+        let openAIChatResponse = try decode(
+            OpenAIChatCompletionResponse.self,
+            from: ContractsProxyGoldenInputs.openAIChatResponseJSON
+        )
+        let openAIChatStreamChunk = try decode(
+            OpenAIStreamChunk.self,
+            from: ContractsProxyGoldenInputs.openAIChatStreamChunkJSON
+        )
+        let codexResponsesRequest = try decode(
+            OpenAIResponsesRequest.self,
+            from: ContractsProxyGoldenInputs.codexResponsesRequestJSON
+        )
+        let codexResponsesResponse = try decode(
+            OpenAIResponsesResponse.self,
+            from: ContractsProxyGoldenInputs.codexResponsesResponseJSON
+        )
+        let codexResponsesCompleted = try decode(
+            OpenAIResponsesCompletedEvent.self,
+            from: ContractsProxyGoldenInputs.codexResponsesCompletedEventJSON
+        )
 
         return [
             .roundTrip(
@@ -83,7 +119,56 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/provider/provider-usage-full.json",
                 value: usage
             ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-request-full",
+                path: "contracts/proxy/claude/message-request-full.json",
+                value: claudeRequest
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/message-response-full",
+                path: "contracts/proxy/claude/message-response-full.json",
+                value: claudeResponse
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-delta",
+                path: "contracts/proxy/claude/stream-content-block-delta.json",
+                value: claudeStreamDelta
+            ),
+            .roundTrip(
+                id: "contracts/proxy/codex/responses-request-tool-loop",
+                path: "contracts/proxy/codex/responses-request-tool-loop.json",
+                value: codexResponsesRequest
+            ),
+            .roundTrip(
+                id: "contracts/proxy/codex/responses-response-mixed",
+                path: "contracts/proxy/codex/responses-response-mixed.json",
+                value: codexResponsesResponse
+            ),
+            .roundTrip(
+                id: "contracts/proxy/codex/stream-completed",
+                path: "contracts/proxy/codex/stream-completed.json",
+                value: codexResponsesCompleted
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/chat-request-tool-loop",
+                path: "contracts/proxy/opencode/chat-request-tool-loop.json",
+                value: openAIChatRequest
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/chat-response-cache-usage",
+                path: "contracts/proxy/opencode/chat-response-cache-usage.json",
+                value: openAIChatResponse
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/stream-tool-delta",
+                path: "contracts/proxy/opencode/stream-tool-delta.json",
+                value: openAIChatStreamChunk
+            ),
         ]
+    }
+
+    private static func decode<Value: Decodable>(_ type: Value.Type, from json: String) throws -> Value {
+        try JSONDecoder().decode(type, from: Data(json.utf8))
     }
 
     private static func makeCredential() throws -> AccountCredential {
