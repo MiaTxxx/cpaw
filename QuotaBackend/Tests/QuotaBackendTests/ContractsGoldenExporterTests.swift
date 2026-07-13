@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 61)
+        XCTAssertEqual(cases.count, 65)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -164,6 +164,10 @@ private enum ContractsV1GoldenCatalog {
         let openAIChatRequest = try decode(
             OpenAIChatCompletionRequest.self,
             from: ContractsProxyGoldenInputs.openAIChatRequestJSON
+        )
+        let openAIChatUnknownContentRequest = try decode(
+            OpenAIChatCompletionRequest.self,
+            from: ContractsProxyGoldenInputs.openAIChatUnknownContentRequestJSON
         )
         let openAIChatResponse = try decode(
             OpenAIChatCompletionResponse.self,
@@ -502,6 +506,30 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/opencode/chat-request-tool-loop",
                 path: "contracts/proxy/opencode/chat-request-tool-loop.json",
                 value: openAIChatRequest
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/chat-request-input-file-normalized",
+                path: "contracts/proxy/opencode/chat-request-input-file-normalized.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatInputFileRequestJSON,
+                as: OpenAIChatCompletionRequest.self,
+                sourceTest: "ClaudeProxyConverterTests.testEncodeOpenAIInputFilePartAsChatCompletionsFileShape"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/opencode/chat-request-unknown-content-preserved",
+                path: "contracts/proxy/opencode/chat-request-unknown-content-preserved.json",
+                value: openAIChatUnknownContentRequest
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/chat-request-invalid-content-scalar",
+                path: "contracts/proxy/opencode/chat-request-invalid-content-scalar.json",
+                inputJSON: #"{"model":"gpt-fixture-chat","messages":[{"role":"user","content":7}]}"#,
+                as: OpenAIChatCompletionRequest.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/chat-request-content-part-missing-type",
+                path: "contracts/proxy/opencode/chat-request-content-part-missing-type.json",
+                inputJSON: #"{"model":"gpt-fixture-chat","messages":[{"role":"user","content":[{"text":"fixture"}]}]}"#,
+                as: OpenAIChatCompletionRequest.self
             ),
             .roundTrip(
                 id: "contracts/proxy/opencode/chat-response-cache-usage",

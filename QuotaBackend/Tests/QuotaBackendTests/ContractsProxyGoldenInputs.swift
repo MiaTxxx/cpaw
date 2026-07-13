@@ -275,6 +275,43 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let openAIChatInputFileRequestJSON = #"""
+    {
+      "model": "gpt-fixture-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "input_file",
+              "file_id": "file_fixture_input_001",
+              "filename": "fixture-input.txt"
+            }
+          ]
+        }
+      ],
+      "max_tokens": 4294967296
+    }
+    """#
+
+    static let openAIChatUnknownContentRequestJSON = #"""
+    {
+      "model": "gpt-fixture-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "future_audio",
+              "audio": { "id": "audio_fixture_001", "duration_ms": 1250 },
+              "nullable": null
+            }
+          ]
+        }
+      ]
+    }
+    """#
+
     static let openAIChatRequestJSON = #"""
     {
       "model": "gpt-fixture-chat",
