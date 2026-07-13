@@ -71,7 +71,7 @@ public sealed record OpenAIChatMessageWire
 
     [JsonPropertyName("content")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public JsonElement? Content { get; init; }
+    public OpenAIMessageContentWire? Content { get; init; }
 
     [JsonPropertyName("name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -91,6 +91,97 @@ public sealed record OpenAIChatMessageWire
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+[JsonConverter(typeof(OpenAIMessageContentWireJsonConverter))]
+public abstract record OpenAIMessageContentWire;
+
+public sealed record OpenAITextMessageContentWire : OpenAIMessageContentWire
+{
+    public required string Text { get; init; }
+}
+
+public sealed record OpenAIPartsMessageContentWire : OpenAIMessageContentWire
+{
+    public required IReadOnlyList<OpenAIContentPartWire> Parts { get; init; }
+}
+
+[JsonConverter(typeof(OpenAIContentPartWireJsonConverter))]
+public abstract record OpenAIContentPartWire
+{
+    [JsonIgnore]
+    public abstract string Type { get; }
+}
+
+public sealed record OpenAITextContentPartWire : OpenAIContentPartWire
+{
+    public override string Type => "text";
+
+    [JsonPropertyName("text")]
+    public required string Text { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIImageUrlContentPartWire : OpenAIContentPartWire
+{
+    public override string Type => "image_url";
+
+    [JsonPropertyName("image_url")]
+    public required OpenAIImageUrlWire ImageUrl { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIImageUrlWire
+{
+    [JsonPropertyName("url")]
+    public required string Url { get; init; }
+
+    [JsonPropertyName("detail")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Detail { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIFileContentPartWire : OpenAIContentPartWire
+{
+    public override string Type => "file";
+
+    [JsonPropertyName("file")]
+    public required OpenAIFileDescriptorWire File { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIFileDescriptorWire
+{
+    [JsonPropertyName("file_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FileId { get; init; }
+
+    [JsonPropertyName("filename")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Filename { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIUnknownContentPartWire : OpenAIContentPartWire
+{
+    [JsonIgnore]
+    public required string Discriminator { get; init; }
+
+    public override string Type => Discriminator;
+
+    [JsonIgnore]
+    public required JsonElement Value { get; init; }
 }
 
 public sealed record OpenAIChatCompletionResponseWire

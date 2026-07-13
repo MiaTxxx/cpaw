@@ -43,13 +43,21 @@ public sealed class ProxyGoldenContractTests
         { "codex/stream-reasoning-summary-text-delta.json", typeof(OpenAIResponsesReasoningSummaryTextDeltaEventWire) },
         { "codex/stream-function-call-arguments-delta.json", typeof(OpenAIResponsesFunctionCallArgumentsDeltaEventWire) },
         { "codex/stream-function-call-arguments-done.json", typeof(OpenAIResponsesFunctionCallArgumentsDoneEventWire) },
+        { "opencode/chat-request-input-file-normalized.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-request-tool-loop.json", typeof(OpenAIChatCompletionRequestWire) },
+        { "opencode/chat-request-unknown-content-preserved.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-response-malformed-usage.json", typeof(OpenAIChatCompletionResponseWire) },
         { "opencode/error-all-fields.json", typeof(OpenAIErrorResponseWire) },
         { "opencode/error-message-only.json", typeof(OpenAIErrorResponseWire) },
         { "opencode/chat-response-cache-usage.json", typeof(OpenAIChatCompletionResponseWire) },
         { "opencode/stream-tool-delta.json", typeof(OpenAIChatStreamChunkWire) },
         { "opencode/stream-usage-only.json", typeof(OpenAIChatStreamChunkWire) },
+    };
+
+    public static TheoryData<string> ProxyDecodeFailureFixtures => new()
+    {
+        { "opencode/chat-request-invalid-content-scalar.json" },
+        { "opencode/chat-request-content-part-missing-type.json" },
     };
 
     [Theory]
@@ -65,6 +73,106 @@ public sealed class ProxyGoldenContractTests
 
         using var actual = JsonDocument.Parse(JsonSerializer.Serialize(value, contractType));
         AssertJsonEquivalent(expected, actual.RootElement, "$expected");
+    }
+
+    [Theory]
+    [MemberData(nameof(ProxyDecodeFailureFixtures))]
+    public void Windows_proxy_wire_contracts_reject_Swift_decode_failure_goldens(string relativePath)
+    {
+        using var envelope = JsonDocument.Parse(File.ReadAllBytes(GetFixturePath(relativePath)));
+        var input = envelope.RootElement.GetProperty("input");
+
+        var exception = Assert.Throws<WireJsonException>(
+            () => WireJson.Deserialize<OpenAIChatCompletionRequestWire>(input));
+
+        Assert.Null(exception.InnerException);
+        Assert.DoesNotContain(input.GetRawText(), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OpenAI_chat_message_content_uses_a_typed_union()
+    {
+        const string json = """
+            {
+              "model":"gpt-fixture-chat",
+              "messages":[
+                {"role":"system","content":"Fixture instructions"},
+                {
+                  "role":"user",
+                  "content":[
+                    {"type":"text","text":"Fixture text","future_text_hint":true},
+                    {
+                      "type":"image_url",
+                      "image_url":{"url":"https://example.test/fixture.png","detail":"high","future_image_hint":1},
+                      "future_part_hint":"image"
+                    },
+                    {"type":"file","file_id":"file_fixture_flat","filename":"fixture.txt"},
+                    {"type":"future_audio","audio":{"id":"audio_fixture"},"nullable":null}
+                  ]
+                }
+              ]
+            }
+            """;
+
+        var request = WireJson.Deserialize<OpenAIChatCompletionRequestWire>(json);
+
+        var textContent = Assert.IsType<OpenAITextMessageContentWire>(request.Messages[0].Content);
+        Assert.Equal("Fixture instructions", textContent.Text);
+
+        var partsContent = Assert.IsType<OpenAIPartsMessageContentWire>(request.Messages[1].Content);
+        Assert.Collection(
+            partsContent.Parts,
+            part =>
+            {
+                var text = Assert.IsType<OpenAITextContentPartWire>(part);
+                Assert.Equal("Fixture text", text.Text);
+                Assert.True(text.AdditionalProperties?["future_text_hint"].GetBoolean());
+            },
+            part =>
+            {
+                var image = Assert.IsType<OpenAIImageUrlContentPartWire>(part);
+                Assert.Equal("https://example.test/fixture.png", image.ImageUrl.Url);
+                Assert.Equal(1, image.ImageUrl.AdditionalProperties?["future_image_hint"].GetInt32());
+                Assert.Equal("image", image.AdditionalProperties?["future_part_hint"].GetString());
+            },
+            part =>
+            {
+                var file = Assert.IsType<OpenAIFileContentPartWire>(part);
+                Assert.Equal("file_fixture_flat", file.File.FileId);
+                Assert.Equal("fixture.txt", file.File.Filename);
+            },
+            part =>
+            {
+                var unknown = Assert.IsType<OpenAIUnknownContentPartWire>(part);
+                Assert.Equal("future_audio", unknown.Type);
+                Assert.Equal(JsonValueKind.Null, unknown.Value.GetProperty("nullable").ValueKind);
+            });
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(request));
+        var serializedParts = roundTrip.RootElement.GetProperty("messages")[1].GetProperty("content");
+        Assert.Equal("file", serializedParts[2].GetProperty("type").GetString());
+        Assert.Equal("file_fixture_flat", serializedParts[2].GetProperty("file").GetProperty("file_id").GetString());
+        Assert.False(serializedParts[2].TryGetProperty("file_id", out _));
+        Assert.Equal("audio_fixture", serializedParts[3].GetProperty("audio").GetProperty("id").GetString());
+    }
+
+    [Theory]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":{}}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":true}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[null]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":null}]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":7}]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":null}]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image_url\",\"image_url\":null}]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image_url\",\"image_url\":{\"url\":null}}]}]}")]
+    [InlineData("{\"model\":\"fixture\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"file\",\"file\":null}]}]}")]
+    public void OpenAI_chat_message_content_rejects_invalid_known_shapes(string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(
+            () => WireJson.Deserialize<OpenAIChatCompletionRequestWire>(json));
+
+        Assert.Null(exception.InnerException);
+        Assert.DoesNotContain(json, exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -319,10 +319,34 @@
       "sha256" : "4e17e1c2b6cce5f6329fbb6d7919e9185335dc7179cf0cedcb5f0c0e8084f5ee"
     },
     {
+      "id" : "contracts/proxy/opencode/chat-request-content-part-missing-type",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/chat-request-content-part-missing-type.json",
+      "sha256" : "cd33557036554c89782b4ed71f79e2417a9dd4822e038565e94e700cd7caf3d8"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-request-input-file-normalized",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/chat-request-input-file-normalized.json",
+      "sha256" : "addf60886f4d4c9271ada402978cf917a8b2928a1b466396c32b069fa5521b16"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-request-invalid-content-scalar",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/chat-request-invalid-content-scalar.json",
+      "sha256" : "73c260beee2d9b37c27715e6f5fd8ff7566254529491a46d3e1d6671ba789903"
+    },
+    {
       "id" : "contracts/proxy/opencode/chat-request-tool-loop",
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/chat-request-tool-loop.json",
       "sha256" : "7bd838809931d1beb7ab6dec3335cd23c80fd8a3dced721a4cd8632d3353253f"
+    },
+    {
+      "id" : "contracts/proxy/opencode/chat-request-unknown-content-preserved",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/chat-request-unknown-content-preserved.json",
+      "sha256" : "bd420bf47e87c596bb7212c2ac30cdaeb7ce8bafd939a336bb0eea088dd86838"
     },
     {
       "id" : "contracts/proxy/opencode/chat-response-cache-usage",
