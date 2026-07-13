@@ -127,6 +127,18 @@
       "sha256" : "9f136f10fe1e8ad4eb3aed4449cb63f2f93a3d2055098a11a2a4809ece78a425"
     },
     {
+      "id" : "contracts/proxy/claude/file-deleted",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/file-deleted.json",
+      "sha256" : "7d23970f7a24e03cba25162816e473da921a9c64bf0c2f5e75f1d48a93edf21b"
+    },
+    {
+      "id" : "contracts/proxy/claude/files-list-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/files-list-full.json",
+      "sha256" : "2ec6432f6bb1ba36f60ae2ad2ccca760c65b0b6a0582a15ebbc8ba03fbbeb035"
+    },
+    {
       "id" : "contracts/proxy/claude/message-request-full",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-full.json",
@@ -149,6 +161,66 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/stream-content-block-delta.json",
       "sha256" : "5a0e2ac961e5b3630b2e5345f617c944b88474b06b334c45eabf3e2f20a0e03a"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-delta-citations",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-delta-citations.json",
+      "sha256" : "c968b9cc756b25ea04d024f49347591fa0bab61062d6504a48129d77d166c54b"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-delta-signature",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-delta-signature.json",
+      "sha256" : "c32fe9902959b71ea57c04c787333ec1a16a603692556f0f60c5745a98a500b7"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-delta-text",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-delta-text.json",
+      "sha256" : "948e9abc1401b62c7755e9f47b55501644f39e1342235f4877a2af6a332abdbc"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-delta-thinking",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-delta-thinking.json",
+      "sha256" : "d04b195742c80736e08b7565c6a1098771519ecbddafc61e791b2235f974c4f9"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-start-text",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-start-text.json",
+      "sha256" : "0434a3ed220d9a5b90b6eee8df448a167b6d058a11f26ede6d81c386cd691af8"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-start-thinking",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-start-thinking.json",
+      "sha256" : "6fdb3192055aa98e9bdfab812709d6e993e8db1b172c39496c340baab04a465f"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-start-tool-use",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-start-tool-use.json",
+      "sha256" : "5e67598ffc0dba9539872cd84555b728406ed81b47a3c999c53e132b292ed268"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-content-block-stop",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-content-block-stop.json",
+      "sha256" : "8ae5b97c8719704267360017022d0481ab04facb007bd27a90b21949a446ca9f"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-message-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-message-delta.json",
+      "sha256" : "e8ea1f72a2f0a85965ba520b04392628a2a8d1770827de5310be3e82caeb8e42"
+    },
+    {
+      "id" : "contracts/proxy/claude/stream-message-start-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/stream-message-start-full.json",
+      "sha256" : "fbb88145a204c50bc629ce6e27e94770e5dcea53a486bd5f3bc9b5bcc3728cd5"
     },
     {
       "id" : "contracts/proxy/claude/token-count-request-structured-system",

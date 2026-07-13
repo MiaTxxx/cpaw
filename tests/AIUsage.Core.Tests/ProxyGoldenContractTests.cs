@@ -18,6 +18,18 @@ public sealed class ProxyGoldenContractTests
         { "claude/token-count-response-large.json", typeof(ClaudeTokenCountResponseWire) },
         { "claude/error-api-without-request-id.json", typeof(ClaudeErrorResponseWire) },
         { "claude/error-rate-limit-with-request-id.json", typeof(ClaudeErrorResponseWire) },
+        { "claude/file-deleted.json", typeof(ClaudeDeletedFileResponseWire) },
+        { "claude/files-list-full.json", typeof(ClaudeFilesListResponseWire) },
+        { "claude/stream-content-block-delta-citations.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/stream-content-block-delta-signature.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/stream-content-block-delta-text.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/stream-content-block-delta-thinking.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/stream-content-block-start-text.json", typeof(ClaudeContentBlockStartEventWire) },
+        { "claude/stream-content-block-start-thinking.json", typeof(ClaudeContentBlockStartEventWire) },
+        { "claude/stream-content-block-start-tool-use.json", typeof(ClaudeContentBlockStartEventWire) },
+        { "claude/stream-content-block-stop.json", typeof(ClaudeContentBlockStopEventWire) },
+        { "claude/stream-message-delta.json", typeof(ClaudeMessageDeltaEventWire) },
+        { "claude/stream-message-start-full.json", typeof(ClaudeMessageStartEventWire) },
         { "codex/error-all-fields.json", typeof(CodexErrorResponseWire) },
         { "codex/responses-request-tool-loop.json", typeof(OpenAIResponsesRequestWire) },
         { "codex/responses-response-mixed.json", typeof(OpenAIResponsesResponseWire) },
@@ -169,6 +181,123 @@ public sealed class ProxyGoldenContractTests
     }
 
     [Fact]
+    public void Claude_stream_and_files_wire_preserve_unknown_properties()
+    {
+        const string streamJson = """
+            {
+              "type":"content_block_start",
+              "index":4294967296,
+              "content_block":{
+                "type":"tool_use",
+                "id":"toolu_fixture",
+                "name":"lookup_fixture",
+                "input":{"query":"quota"},
+                "future_block_hint":{"mode":"fixture"}
+              },
+              "future_event_hint":true
+            }
+            """;
+
+        var stream = WireJson.Deserialize<ClaudeContentBlockStartEventWire>(streamJson);
+        Assert.Equal(4_294_967_296, stream.Index);
+        Assert.True(stream.AdditionalProperties?["future_event_hint"].GetBoolean());
+        Assert.Equal(
+            "fixture",
+            stream.ContentBlock.AdditionalProperties?["future_block_hint"].GetProperty("mode").GetString());
+
+        using var streamRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(stream));
+        Assert.Equal(
+            "fixture",
+            streamRoundTrip.RootElement
+                .GetProperty("content_block")
+                .GetProperty("future_block_hint")
+                .GetProperty("mode")
+                .GetString());
+
+        const string filesJson = """
+            {
+              "data":[{
+                "id":"file_fixture",
+                "type":"file",
+                "filename":"fixture.jsonl",
+                "mime_type":"application/jsonl",
+                "size_bytes":4294967296,
+                "created_at":"2030-01-02T03:04:05Z",
+                "downloadable":true,
+                "scope":{"type":"workspace","id":"workspace_fixture","future_scope_hint":1},
+                "future_file_hint":"keep"
+              }],
+              "has_more":false,
+              "first_id":"file_fixture",
+              "last_id":"file_fixture",
+              "future_list_hint":null
+            }
+            """;
+
+        var files = WireJson.Deserialize<ClaudeFilesListResponseWire>(filesJson);
+        var file = Assert.Single(files.Data);
+        Assert.Equal(4_294_967_296, file.SizeBytes);
+        Assert.Equal("keep", file.AdditionalProperties?["future_file_hint"].GetString());
+        Assert.Equal(1, file.Scope?.AdditionalProperties?["future_scope_hint"].GetInt32());
+        Assert.Equal(JsonValueKind.Null, files.AdditionalProperties?["future_list_hint"].ValueKind);
+    }
+
+    [Theory]
+    [InlineData(typeof(ClaudeMessageStartEventWire), "{\"type\":\"message_start\",\"message\":null}")]
+    [InlineData(typeof(ClaudeContentBlockStartEventWire), "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":null}")]
+    [InlineData(typeof(ClaudeContentBlockDeltaEventWire), "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":null}")]
+    [InlineData(typeof(ClaudeMessageDeltaEventWire), "{\"type\":\"message_delta\",\"delta\":null,\"usage\":{\"output_tokens\":0}}")]
+    [InlineData(typeof(ClaudeFilesListResponseWire), "{\"data\":null,\"has_more\":false}")]
+    [InlineData(typeof(ClaudeFilesListResponseWire), "{\"data\":[null],\"has_more\":false}")]
+    public void Claude_stream_and_files_wire_reject_required_nulls(Type contractType, string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+
+        Assert.Null(exception.InnerException);
+    }
+
+    [Theory]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":null}}")]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"thinking\",\"thinking\":null}}")]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":null,\"name\":\"fixture\",\"input\":{}}}")]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_fixture\",\"name\":null,\"input\":{}}}")]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_fixture\",\"name\":\"fixture\",\"input\":null}}")]
+    [InlineData("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_fixture\",\"name\":\"fixture\",\"input\":\"not-an-object\"}}")]
+    public void Claude_known_content_block_union_rejects_invalid_required_shapes(string json)
+    {
+        Assert.Throws<WireJsonException>(() => WireJson.Deserialize<ClaudeContentBlockStartEventWire>(json));
+    }
+
+    [Theory]
+    [InlineData("text_delta", "text")]
+    [InlineData("input_json_delta", "partial_json")]
+    [InlineData("thinking_delta", "thinking")]
+    [InlineData("signature_delta", "signature")]
+    public void Claude_known_delta_union_rejects_variant_required_nulls(string deltaType, string propertyName)
+    {
+        var json = $$"""
+            {
+              "type":"content_block_delta",
+              "index":0,
+              "delta":{"type":"{{deltaType}}","{{propertyName}}":null}
+            }
+            """;
+
+        Assert.Throws<WireJsonException>(() => WireJson.Deserialize<ClaudeContentBlockDeltaEventWire>(json));
+    }
+
+    [Theory]
+    [InlineData(typeof(ClaudeMessageStartEventWire), "{\"type\":\"future_event\",\"message\":{\"id\":\"msg_fixture\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"claude-fixture\",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}")]
+    [InlineData(typeof(ClaudeContentBlockStartEventWire), "{\"type\":\"future_event\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}")]
+    [InlineData(typeof(ClaudeContentBlockDeltaEventWire), "{\"type\":\"future_event\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"fixture\"}}")]
+    [InlineData(typeof(ClaudeContentBlockStopEventWire), "{\"type\":\"future_event\",\"index\":0}")]
+    [InlineData(typeof(ClaudeMessageDeltaEventWire), "{\"type\":\"future_event\",\"delta\":{},\"usage\":{\"output_tokens\":0}}")]
+    public void Claude_stream_events_reject_wrong_discriminators(Type contractType, string json)
+    {
+        Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+    }
+
+    [Fact]
     public void Typed_nested_wire_objects_preserve_unknown_properties()
     {
         const string json = """
@@ -192,14 +321,16 @@ public sealed class ProxyGoldenContractTests
     }
 
     [Fact]
-    public void All_typed_proxy_token_and_count_properties_are_64_bit()
+    public void All_typed_proxy_token_count_index_and_size_properties_are_64_bit()
     {
         var invalidProperties = typeof(ClaudeMessageRequestWire).Assembly
             .GetTypes()
             .Where(type => type.Namespace?.StartsWith("AIUsage.Core.Proxy.Protocols", StringComparison.Ordinal) == true)
             .SelectMany(type => type.GetProperties())
             .Where(property => property.Name.Contains("Token", StringComparison.OrdinalIgnoreCase)
-                || property.Name.Contains("Count", StringComparison.OrdinalIgnoreCase))
+                || property.Name.Contains("Count", StringComparison.OrdinalIgnoreCase)
+                || property.Name == "Index"
+                || property.Name == "SizeBytes")
             .Where(property => property.PropertyType.IsValueType)
             .Where(property => property.PropertyType != typeof(long) && property.PropertyType != typeof(long?))
             .Select(property => $"{property.DeclaringType?.FullName}.{property.Name}: {property.PropertyType.Name}")

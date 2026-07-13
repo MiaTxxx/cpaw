@@ -157,7 +157,7 @@ public sealed record ClaudeUsageWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
-public sealed record ClaudeContentBlockDeltaEventWire
+public sealed record ClaudeContentBlockDeltaEventWire : IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -170,9 +170,12 @@ public sealed record ClaudeContentBlockDeltaEventWire
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "content_block_delta");
 }
 
-public sealed record ClaudeContentDeltaWire
+public sealed record ClaudeContentDeltaWire : IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -192,6 +195,284 @@ public sealed record ClaudeContentDeltaWire
     [JsonPropertyName("signature")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Signature { get; init; }
+
+    [JsonPropertyName("citation")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Citation { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        var missingProperty = Type switch
+        {
+            "text_delta" when Text is null => "text",
+            "input_json_delta" when PartialJson is null => "partial_json",
+            "thinking_delta" when Thinking is null => "thinking",
+            "signature_delta" when Signature is null => "signature",
+            _ => null,
+        };
+
+        if (missingProperty is not null)
+        {
+            throw new JsonException($"Claude {Type} requires {missingProperty}.");
+        }
+    }
+}
+
+public sealed record ClaudeMessageStartEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("message")]
+    public required ClaudeMessageStartWire Message { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "message_start");
+}
+
+public sealed record ClaudeMessageStartWire
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("role")]
+    public required string Role { get; init; }
+
+    [JsonPropertyName("content")]
+    public required IReadOnlyList<ClaudeContentBlockWire> Content { get; init; }
+
+    [JsonPropertyName("model")]
+    public required string Model { get; init; }
+
+    [JsonPropertyName("stop_reason")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StopReason { get; init; }
+
+    [JsonPropertyName("stop_sequence")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StopSequence { get; init; }
+
+    [JsonPropertyName("usage")]
+    public required ClaudeUsageWire Usage { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+// Anthropic content blocks are discriminated by `type`. These known fields share one
+// lossless wire shape so unrecognized block kinds and future fields remain round-trippable.
+public sealed record ClaudeContentBlockWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("text")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Text { get; init; }
+
+    [JsonPropertyName("thinking")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Thinking { get; init; }
+
+    [JsonPropertyName("signature")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Signature { get; init; }
+
+    [JsonPropertyName("id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("input")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Input { get; init; }
+
+    [JsonPropertyName("cache_control")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? CacheControl { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        var missingProperty = Type switch
+        {
+            "text" when Text is null => "text",
+            "thinking" when Thinking is null => "thinking",
+            "tool_use" when Id is null => "id",
+            "tool_use" when Name is null => "name",
+            "tool_use" when Input is null || Input.Value.ValueKind != JsonValueKind.Object => "input",
+            _ => null,
+        };
+
+        if (missingProperty is not null)
+        {
+            throw new JsonException($"Claude {Type} requires {missingProperty}.");
+        }
+    }
+}
+
+public sealed record ClaudeContentBlockStartEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("index")]
+    public required long Index { get; init; }
+
+    [JsonPropertyName("content_block")]
+    public required ClaudeContentBlockWire ContentBlock { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "content_block_start");
+}
+
+public sealed record ClaudeContentBlockStopEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("index")]
+    public required long Index { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "content_block_stop");
+}
+
+public sealed record ClaudeMessageDeltaEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("delta")]
+    public required ClaudeMessageDeltaContentWire Delta { get; init; }
+
+    [JsonPropertyName("usage")]
+    public required ClaudeUsageDeltaWire Usage { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "message_delta");
+}
+
+public sealed record ClaudeMessageDeltaContentWire
+{
+    [JsonPropertyName("stop_reason")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StopReason { get; init; }
+
+    [JsonPropertyName("stop_sequence")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StopSequence { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeUsageDeltaWire
+{
+    [JsonPropertyName("output_tokens")]
+    public required long OutputTokens { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeFileScopeWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeFileObjectWire
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("filename")]
+    public required string Filename { get; init; }
+
+    [JsonPropertyName("mime_type")]
+    public required string MimeType { get; init; }
+
+    [JsonPropertyName("size_bytes")]
+    public required long SizeBytes { get; init; }
+
+    [JsonPropertyName("created_at")]
+    public required string CreatedAt { get; init; }
+
+    [JsonPropertyName("downloadable")]
+    public required bool Downloadable { get; init; }
+
+    [JsonPropertyName("scope")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ClaudeFileScopeWire? Scope { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeFilesListResponseWire
+{
+    [JsonPropertyName("data")]
+    public required IReadOnlyList<ClaudeFileObjectWire> Data { get; init; }
+
+    [JsonPropertyName("has_more")]
+    public required bool HasMore { get; init; }
+
+    [JsonPropertyName("first_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FirstId { get; init; }
+
+    [JsonPropertyName("last_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LastId { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeDeletedFileResponseWire
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("deleted")]
+    public required bool Deleted { get; init; }
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
@@ -223,4 +504,15 @@ public sealed record ClaudeErrorWire
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+internal static class ClaudeWireDiscriminator
+{
+    public static void Require(string actual, string expected)
+    {
+        if (!string.Equals(actual, expected, StringComparison.Ordinal))
+        {
+            throw new JsonException($"Expected Claude {expected} event.");
+        }
+    }
 }
