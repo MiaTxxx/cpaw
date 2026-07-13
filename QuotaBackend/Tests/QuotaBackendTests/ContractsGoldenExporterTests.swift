@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 25)
+        XCTAssertEqual(cases.count, 37)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -34,8 +34,13 @@ private enum ContractsV1GoldenCatalog {
 
     static func makeCases() throws -> [GoldenFixtureCase] {
         let credential = try makeCredential()
+        let minimalCredential = try makeMinimalOAuthCredential()
+        let safeCredentialMetadata = SafeAccountCredentialMetadataFixture(credential: credential)
         let usage = makeUsage()
+        let minimalUsage = makeMinimalUsage()
+        let allJSONKindsUsage = makeAllJSONKindsUsage()
         let summary = makeSummary(usage: usage)
+        let sparseFutureSummary = makeSparseFutureSummary()
         let success = ProviderResult(
             id: "codex:fixture-account",
             providerId: "codex",
@@ -51,6 +56,8 @@ private enum ContractsV1GoldenCatalog {
             error: "[not_logged_in] Fixture credentials are unavailable"
         )
         let snapshot = makeDashboardSnapshot(success: success, failure: failure)
+        let emptySnapshot = makeEmptyDashboardSnapshot()
+        let futureToneSnapshot = makeFutureToneDashboardSnapshot()
         let claudeRequest = try decode(
             ClaudeMessageRequest.self,
             from: ContractsProxyGoldenInputs.claudeMessageRequestJSON
@@ -63,6 +70,11 @@ private enum ContractsV1GoldenCatalog {
             ClaudeContentBlockDeltaEvent.self,
             from: ContractsProxyGoldenInputs.claudeContentBlockDeltaJSON
         )
+        let claudeTokenCountRequest = try decode(
+            ClaudeTokenCountRequest.self,
+            from: ContractsProxyGoldenInputs.claudeTokenCountStructuredSystemJSON
+        )
+        let claudeTokenCountResponse = ClaudeTokenCountResponse(inputTokens: 4_294_967_296)
         let openAIChatRequest = try decode(
             OpenAIChatCompletionRequest.self,
             from: ContractsProxyGoldenInputs.openAIChatRequestJSON
@@ -120,14 +132,52 @@ private enum ContractsV1GoldenCatalog {
                 value: credential
             ),
             .roundTrip(
+                id: "contracts/account/account-credential-metadata-safe-projection",
+                path: "contracts/account/account-credential-metadata-safe-projection.json",
+                value: safeCredentialMetadata
+            ),
+            .roundTrip(
+                id: "contracts/account/account-credential-minimal-oauth",
+                path: "contracts/account/account-credential-minimal-oauth.json",
+                value: minimalCredential
+            ),
+            .roundTrip(
+                id: "contracts/dashboard/dashboard-snapshot-empty",
+                path: "contracts/dashboard/dashboard-snapshot-empty.json",
+                value: emptySnapshot
+            ),
+            .roundTrip(
+                id: "contracts/dashboard/dashboard-snapshot-future-alert-tone",
+                path: "contracts/dashboard/dashboard-snapshot-future-alert-tone.json",
+                value: futureToneSnapshot
+            ),
+            .roundTrip(
                 id: "contracts/dashboard/dashboard-snapshot-mixed",
                 path: "contracts/dashboard/dashboard-snapshot-mixed.json",
                 value: snapshot
+            ),
+            .decodeTransform(
+                id: "contracts/provider/provider-result-explicit-null-optionals",
+                path: "contracts/provider/provider-result-explicit-null-optionals.json",
+                inputJSON: #"{"id":"warp:fixture-null-optionals","providerId":"warp","accountId":null,"ok":false,"usage":null,"summary":null,"error":null}"#,
+                as: ProviderResult.self
             ),
             .roundTrip(
                 id: "contracts/provider/provider-result-failure-no-summary",
                 path: "contracts/provider/provider-result-failure-no-summary.json",
                 value: failure
+            ),
+            .decodeFailure(
+                id: "contracts/provider/provider-result-missing-required-id",
+                path: "contracts/provider/provider-result-missing-required-id.json",
+                inputJSON: #"{"providerId":"warp","ok":false,"error":"Fixture failure"}"#,
+                as: ProviderResult.self
+            ),
+            .decodeFailure(
+                id: "contracts/provider/provider-result-null-required-id",
+                path: "contracts/provider/provider-result-null-required-id.json",
+                inputJSON: #"{"id":null,"providerId":"warp","ok":false,"error":"Fixture failure"}"#,
+                as: ProviderResult.self
             ),
             .roundTrip(
                 id: "contracts/provider/provider-result-success",
@@ -140,9 +190,24 @@ private enum ContractsV1GoldenCatalog {
                 value: summary
             ),
             .roundTrip(
+                id: "contracts/provider/provider-summary-sparse-future-values",
+                path: "contracts/provider/provider-summary-sparse-future-values.json",
+                value: sparseFutureSummary
+            ),
+            .roundTrip(
+                id: "contracts/provider/provider-usage-extra-all-json-kinds",
+                path: "contracts/provider/provider-usage-extra-all-json-kinds.json",
+                value: allJSONKindsUsage
+            ),
+            .roundTrip(
                 id: "contracts/provider/provider-usage-full",
                 path: "contracts/provider/provider-usage-full.json",
                 value: usage
+            ),
+            .roundTrip(
+                id: "contracts/provider/provider-usage-minimal-offset-time",
+                path: "contracts/provider/provider-usage-minimal-offset-time.json",
+                value: minimalUsage
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/message-request-full",
@@ -158,6 +223,18 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/claude/stream-content-block-delta",
                 path: "contracts/proxy/claude/stream-content-block-delta.json",
                 value: claudeStreamDelta
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/token-count-request-structured-system",
+                path: "contracts/proxy/claude/token-count-request-structured-system.json",
+                value: claudeTokenCountRequest,
+                sourceTest: "ClaudeProxyConverterTests.testEncodeStructuredTokenCountSystemBlocksPreservesArrayShape"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/token-count-response-large",
+                path: "contracts/proxy/claude/token-count-response-large.json",
+                value: claudeTokenCountResponse,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testCountTokensEndpointReturnsHeuristicEstimate"
             ),
             .roundTrip(
                 id: "contracts/proxy/codex/responses-request-tool-loop",
@@ -253,6 +330,44 @@ private enum ContractsV1GoldenCatalog {
     private static func makeCredential() throws -> AccountCredential {
         let json = #"{"id":"fixture-credential","providerId":"codex","accountLabel":"alice@example.test","authMethod":"authFile","credential":"<fixture-credential-a>","createdAt":"2030-01-02T03:04:05Z","lastUsedAt":"2030-01-02T03:04:05Z","metadata":{"email":"alice@example.test","workspace":"fixture-workspace"}}"#
         return try JSONDecoder().decode(AccountCredential.self, from: Data(json.utf8))
+    }
+
+    private static func makeMinimalOAuthCredential() throws -> AccountCredential {
+        let json = #"{"id":"fixture-oauth-credential","providerId":"codex","authMethod":"oauth","credential":"<fixture-credential-oauth>","createdAt":"2030-01-02T11:04:05+08:00","metadata":{}}"#
+        return try JSONDecoder().decode(AccountCredential.self, from: Data(json.utf8))
+    }
+
+    private static func makeMinimalUsage() -> ProviderUsage {
+        var usage = ProviderUsage(provider: "fixture-minimal", label: "Minimal Fixture")
+        usage.fetchedAt = "2030-01-02T11:04:05+08:00"
+        return usage
+    }
+
+    private static func makeAllJSONKindsUsage() -> ProviderUsage {
+        var usage = ProviderUsage(
+            provider: "fixture-json-kinds",
+            label: "JSON Kinds Fixture",
+            extra: [
+                "array": AnyCodable([
+                    AnyCodable("fixture-item"),
+                    AnyCodable(7),
+                    AnyCodable(2.5),
+                    AnyCodable(false),
+                    AnyCodable(NSNull()),
+                ]),
+                "boolean": AnyCodable(true),
+                "double": AnyCodable(0.125),
+                "integer": AnyCodable(4_294_967_296),
+                "null": AnyCodable(NSNull()),
+                "object": AnyCodable([
+                    "nestedArray": AnyCodable([AnyCodable("alpha"), AnyCodable(3)]),
+                    "nestedNull": AnyCodable(NSNull()),
+                ] as [String: AnyCodable]),
+                "string": AnyCodable("fixture-value"),
+            ]
+        )
+        usage.fetchedAt = fixedTime
+        return usage
     }
 
     private static func makeUsage() -> ProviderUsage {
@@ -396,6 +511,90 @@ private enum ContractsV1GoldenCatalog {
         )
     }
 
+    private static func makeSparseFutureSummary() -> ProviderSummary {
+        ProviderSummary(
+            id: "future:fixture-account",
+            providerId: "future-provider",
+            accountId: nil,
+            name: "Future Provider Fixture",
+            label: "Future Provider Fixture",
+            description: "Sparse synthetic contract fixture",
+            category: "future-category",
+            channel: nil,
+            status: "future-provider-state",
+            statusLabel: "Future state",
+            theme: ThemeInfo(accent: "#334155", glow: "#94A3B8"),
+            sourceLabel: "Synthetic source",
+            sourceType: "future-source",
+            fetchedAt: nil,
+            accountLabel: nil,
+            membershipLabel: nil,
+            workspaceLabel: nil,
+            remainingPercent: nil,
+            nextResetAt: nil,
+            nextResetLabel: nil,
+            headline: HeadlineInfo(
+                eyebrow: "Future",
+                primary: "--",
+                secondary: "Unknown",
+                supporting: "Forward-compatible fixture"
+            ),
+            metrics: [],
+            windows: [],
+            costSummary: nil,
+            models: nil,
+            spotlight: "Future provider state",
+            unpricedModels: nil,
+            raw: nil,
+            sourceFilePath: nil,
+            errorCode: nil
+        )
+    }
+
+    private static func makeEmptyDashboardSnapshot() -> DashboardSnapshot {
+        DashboardSnapshot(
+            generatedAt: fixedTime,
+            overview: DashboardOverview(
+                generatedAt: fixedTime,
+                activeProviders: 0,
+                attentionProviders: 0,
+                criticalProviders: 0,
+                resetSoonProviders: 0,
+                localCostMonthUsd: 0,
+                localWeekTokens: 0,
+                stats: [],
+                alerts: []
+            ),
+            providers: []
+        )
+    }
+
+    private static func makeFutureToneDashboardSnapshot() -> DashboardSnapshot {
+        DashboardSnapshot(
+            generatedAt: fixedTime,
+            overview: DashboardOverview(
+                generatedAt: fixedTime,
+                activeProviders: 0,
+                attentionProviders: 1,
+                criticalProviders: 0,
+                resetSoonProviders: 0,
+                localCostMonthUsd: 0,
+                localWeekTokens: 0,
+                stats: [],
+                alerts: [
+                    AlertInfo(
+                        id: "future-provider:fixture-alert",
+                        tone: "investigate",
+                        providerId: "future-provider",
+                        title: "Future alert tone",
+                        body: "Preserve unknown alert tone values"
+                    ),
+                ]
+            ),
+            providers: []
+        )
+    }
+
     private static func makeDashboardSnapshot(
         success: ProviderResult,
         failure: ProviderResult
@@ -426,6 +625,28 @@ private enum ContractsV1GoldenCatalog {
     }
 }
 
+/// Windows UI/daemon RPC exposes account metadata only. The secret-bearing
+/// `credential` field intentionally never crosses that process boundary.
+private struct SafeAccountCredentialMetadataFixture: Codable {
+    let id: String
+    let providerId: String
+    let accountLabel: String?
+    let authMethod: AuthMethod
+    let createdAt: String
+    let lastUsedAt: String?
+    let metadata: [String: String]
+
+    init(credential: AccountCredential) {
+        id = credential.id
+        providerId = credential.providerId
+        accountLabel = credential.accountLabel
+        authMethod = credential.authMethod
+        createdAt = credential.createdAt
+        lastUsedAt = credential.lastUsedAt
+        metadata = credential.metadata
+    }
+}
+
 enum GoldenSSEFraming: String, Codable {
     case encodedFrames = "encoded-frames"
     case responsesEventData = "responses-event-data"
@@ -446,6 +667,14 @@ private struct GoldenSSELifecycleInput: Codable {
 private struct GoldenSSELifecycleExpected: Codable {
     let frames: [GoldenSSEFrame]
     let wire: String
+}
+
+private struct GoldenDecodeFailureExpected: Codable {
+    let accepted: Bool
+}
+
+private enum GoldenFixtureError: Error {
+    case expectedDecodeFailure(String)
 }
 
 private struct GoldenFixtureCase {
@@ -496,6 +725,33 @@ private struct GoldenFixtureCase {
                 sourceTest: sourceTest,
                 inputData: inputData,
                 expectedData: expectedData
+            )
+        }
+    }
+
+    static func decodeFailure<Value: Decodable>(
+        id: String,
+        path: String,
+        inputJSON: String,
+        as type: Value.Type,
+        sourceTest: String = "ContractsGoldenExporterTests.testCatalogEncodesDeterministically"
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-decode-failure") {
+            let inputData = Data(inputJSON.utf8)
+            do {
+                _ = try JSONDecoder().decode(type, from: inputData)
+                throw GoldenFixtureError.expectedDecodeFailure(id)
+            } catch is DecodingError {
+                // Expected: only the stable acceptance outcome is frozen, not
+                // Swift's localized or implementation-specific error message.
+            }
+
+            return try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                kind: "json-decode-failure",
+                inputData: inputData,
+                expectedData: try encodeFixtureValue(GoldenDecodeFailureExpected(accepted: false))
             )
         }
     }
@@ -598,6 +854,7 @@ private struct GoldenFixtureCase {
     private static func renderEnvelope(
         id: String,
         sourceTest: String,
+        kind: String = "json-transform",
         inputData: Data,
         expectedData: Data
     ) throws -> Data {
@@ -610,7 +867,7 @@ private struct GoldenFixtureCase {
                 "file": "ContractsGoldenExporterTests.swift",
                 "test": sourceTest,
             ],
-            "kind": "json-transform",
+            "kind": kind,
             "clock": "2030-01-02T03:04:05Z",
             "input": input,
             "expected": expected,

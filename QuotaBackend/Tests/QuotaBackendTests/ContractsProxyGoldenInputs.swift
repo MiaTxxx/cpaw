@@ -109,6 +109,40 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let claudeTokenCountStructuredSystemJSON = #"""
+    {
+      "model": "claude-fixture-token-count",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Count the synthetic fixture input."
+        }
+      ],
+      "system": [
+        {
+          "type": "text",
+          "text": "Use synthetic fixture data only."
+        },
+        {
+          "type": "text",
+          "text": "Preserve the structured system array.",
+          "cache_control": { "type": "ephemeral" }
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup_fixture",
+          "description": "Reads synthetic fixture data",
+          "input_schema": {
+            "type": "object",
+            "properties": { "query": { "type": "string" } },
+            "required": ["query"]
+          }
+        }
+      ]
+    }
+    """#
+
     static let openAIChatRequestJSON = #"""
     {
       "model": "gpt-fixture-chat",
