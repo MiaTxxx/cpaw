@@ -7,16 +7,70 @@
       "sha256" : "ba285861e31b9a0e6a6e42d2f4f57d12f9e910dd1e991542f59dd5671cd1d46f"
     },
     {
+      "id" : "contracts/account/account-credential-metadata-json-values",
+      "kind" : "json-transform",
+      "path" : "contracts/account/account-credential-metadata-json-values.json",
+      "sha256" : "df0c1129d132250a883d4e6c6416b252aea143563c91371c5fb8f3890c4b98f0"
+    },
+    {
+      "id" : "contracts/account/account-credential-metadata-safe-projection",
+      "kind" : "json-transform",
+      "path" : "contracts/account/account-credential-metadata-safe-projection.json",
+      "sha256" : "c1bd88bc82eacb2ee076fe96e32cbb85a9b3378bf07ea9c14cc330297bb743bb"
+    },
+    {
+      "id" : "contracts/account/account-credential-minimal-oauth",
+      "kind" : "json-transform",
+      "path" : "contracts/account/account-credential-minimal-oauth.json",
+      "sha256" : "cda48f07b2df1ef54493f3f746c3c3b30fee31fafb62d1cf0da27725ca2945ed"
+    },
+    {
+      "id" : "contracts/dashboard/dashboard-snapshot-empty",
+      "kind" : "json-transform",
+      "path" : "contracts/dashboard/dashboard-snapshot-empty.json",
+      "sha256" : "8e108f1212d8d511f8f604c6bbdc2e48d21c9a148f1592e503dd650a81c5563a"
+    },
+    {
+      "id" : "contracts/dashboard/dashboard-snapshot-future-alert-tone",
+      "kind" : "json-transform",
+      "path" : "contracts/dashboard/dashboard-snapshot-future-alert-tone.json",
+      "sha256" : "8443df1fa6841dff47c301620c4ba92983019dfc09b7311ce975df4c9c691360"
+    },
+    {
       "id" : "contracts/dashboard/dashboard-snapshot-mixed",
       "kind" : "json-transform",
       "path" : "contracts/dashboard/dashboard-snapshot-mixed.json",
       "sha256" : "23c17f55a62185969a7fd7cfe65c42626931739c4d84d036c73d2605331bad24"
     },
     {
+      "id" : "contracts/dashboard/dashboard-snapshot-null-provider",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/dashboard/dashboard-snapshot-null-provider.json",
+      "sha256" : "8e3b00773463c0e68c1e80c645dea6126704cbd1fdeeb78221cdbbbbf9621c69"
+    },
+    {
+      "id" : "contracts/provider/provider-result-explicit-null-optionals",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-result-explicit-null-optionals.json",
+      "sha256" : "070cd1feadd7bc83adaa56a6e9dc94c87a97de5abb96f1c9f6d86a7cf38c57f2"
+    },
+    {
       "id" : "contracts/provider/provider-result-failure-no-summary",
       "kind" : "json-transform",
       "path" : "contracts/provider/provider-result-failure-no-summary.json",
       "sha256" : "8e044e8f46ada47b52b9ec176da03bf439c0e6f3a3574d15c07528b0324b2bcf"
+    },
+    {
+      "id" : "contracts/provider/provider-result-missing-required-id",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/provider/provider-result-missing-required-id.json",
+      "sha256" : "a4a4458eccf104e75b614eb212bf07d890b5c9579adf8af0c9bdd0eca0ac939d"
+    },
+    {
+      "id" : "contracts/provider/provider-result-null-required-id",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/provider/provider-result-null-required-id.json",
+      "sha256" : "c88743715c9c1493364026a203f01fad27a801d6bf59a3d4d71378b94ba2dd6b"
     },
     {
       "id" : "contracts/provider/provider-result-success",
@@ -31,10 +85,34 @@
       "sha256" : "d76aca856965750979bbfa222871c6e27e0abb81fa158aeb3c2bad6dcd38c1f5"
     },
     {
+      "id" : "contracts/provider/provider-summary-sparse-future-values",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-summary-sparse-future-values.json",
+      "sha256" : "cf8ee0ab9494d7b914ea9544000313a746168a10a0ad1f4df95124bc4ef31c09"
+    },
+    {
+      "id" : "contracts/provider/provider-usage-extra-all-json-kinds",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-usage-extra-all-json-kinds.json",
+      "sha256" : "17b203b835dea2a47f3b8d131a30c59a9f85d3a8f1db4ecb617791df56d29b8a"
+    },
+    {
       "id" : "contracts/provider/provider-usage-full",
       "kind" : "json-transform",
       "path" : "contracts/provider/provider-usage-full.json",
       "sha256" : "3cdac3f0874f9d64b85fde4c17d0a789981a9443c11885dc91668fd38fd5ff6f"
+    },
+    {
+      "id" : "contracts/provider/provider-usage-minimal-offset-time",
+      "kind" : "json-transform",
+      "path" : "contracts/provider/provider-usage-minimal-offset-time.json",
+      "sha256" : "76a878a306209574ac69500b1cf1577a82f713024f9a5aaf5b5d5c258e7e7fc1"
+    },
+    {
+      "id" : "contracts/provider/provider-usage-null-source-root",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/provider/provider-usage-null-source-root.json",
+      "sha256" : "8d11eb883c7bdf911bc17d6a3781e3fd3e36354a598cf416c7e86badb514bdeb"
     },
     {
       "id" : "contracts/proxy/claude/error-api-without-request-id",
@@ -71,6 +149,18 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/stream-content-block-delta.json",
       "sha256" : "5a0e2ac961e5b3630b2e5345f617c944b88474b06b334c45eabf3e2f20a0e03a"
+    },
+    {
+      "id" : "contracts/proxy/claude/token-count-request-structured-system",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/token-count-request-structured-system.json",
+      "sha256" : "64fbbc7fe72d0cfb5ee33e479b2e9357f0309b6866661d7d92d5d5569759d8c2"
+    },
+    {
+      "id" : "contracts/proxy/claude/token-count-response-large",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/token-count-response-large.json",
+      "sha256" : "73d9a2b3987bcb0b898d82d4bbb7298ed95318cded4d69450e1174b1d14373cc"
     },
     {
       "id" : "contracts/proxy/codex/error-all-fields",

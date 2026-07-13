@@ -65,10 +65,12 @@ public static class ContractJson
             var index = 0;
             foreach (var item in enumerable)
             {
-                if (item is not null)
+                if (item is null)
                 {
-                    ValidateObject(item, $"{path}[{index}]", visited);
+                    throw new JsonException($"Required contract collection item is null at {path}[{index}].");
                 }
+
+                ValidateObject(item, $"{path}[{index}]", visited);
 
                 index++;
             }

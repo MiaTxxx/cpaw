@@ -74,6 +74,37 @@ public sealed record ClaudeMessageWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
+public sealed record ClaudeTokenCountRequestWire
+{
+    [JsonPropertyName("model")]
+    public required string Model { get; init; }
+
+    [JsonPropertyName("messages")]
+    public required IReadOnlyList<ClaudeMessageWire> Messages { get; init; }
+
+    // Anthropic accepts either a string or an array of structured system blocks.
+    // Keeping the JSON value intact mirrors Swift's decode/encode shape preservation.
+    [JsonPropertyName("system")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? System { get; init; }
+
+    [JsonPropertyName("tools")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<JsonElement>? Tools { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeTokenCountResponseWire
+{
+    [JsonPropertyName("input_tokens")]
+    public required long InputTokens { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
 public sealed record ClaudeMessageResponseWire
 {
     [JsonPropertyName("id")]

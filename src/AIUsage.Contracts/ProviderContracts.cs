@@ -44,7 +44,7 @@ public sealed record ProviderUsage
     public string? AccountId { get; init; }
 
     [JsonPropertyName("fetchedAt")]
-    public required string FetchedAt { get; init; }
+    public required Iso8601Timestamp FetchedAt { get; init; }
 
     [JsonPropertyName("source")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -123,7 +123,7 @@ public sealed record RawQuotaWindow
 
     [JsonPropertyName("resetAt")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ResetAt { get; init; }
+    public Iso8601Timestamp? ResetAt { get; init; }
 
     [JsonPropertyName("resetDescription")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -191,7 +191,7 @@ public sealed record ProviderSummary
 
     [JsonPropertyName("fetchedAt")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? FetchedAt { get; init; }
+    public Iso8601Timestamp? FetchedAt { get; init; }
 
     [JsonPropertyName("accountLabel")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -211,7 +211,7 @@ public sealed record ProviderSummary
 
     [JsonPropertyName("nextResetAt")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? NextResetAt { get; init; }
+    public Iso8601Timestamp? NextResetAt { get; init; }
 
     [JsonPropertyName("nextResetLabel")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -312,7 +312,7 @@ public sealed record WindowInfo
 
     [JsonPropertyName("resetAt")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ResetAt { get; init; }
+    public Iso8601Timestamp? ResetAt { get; init; }
 }
 
 public sealed record ModelInfo
@@ -344,11 +344,11 @@ public sealed record AccountCredentialMetadata
     public required string AuthMethod { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public required string CreatedAt { get; init; }
+    public required Iso8601Timestamp CreatedAt { get; init; }
 
     [JsonPropertyName("lastUsedAt")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? LastUsedAt { get; init; }
+    public Iso8601Timestamp? LastUsedAt { get; init; }
 
     [JsonPropertyName("metadata")]
     public required SafeJsonMetadata Metadata { get; init; }

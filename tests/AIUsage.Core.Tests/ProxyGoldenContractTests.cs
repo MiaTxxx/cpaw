@@ -14,6 +14,8 @@ public sealed class ProxyGoldenContractTests
         { "claude/message-request-full.json", typeof(ClaudeMessageRequestWire) },
         { "claude/message-response-full.json", typeof(ClaudeMessageResponseWire) },
         { "claude/stream-content-block-delta.json", typeof(ClaudeContentBlockDeltaEventWire) },
+        { "claude/token-count-request-structured-system.json", typeof(ClaudeTokenCountRequestWire) },
+        { "claude/token-count-response-large.json", typeof(ClaudeTokenCountResponseWire) },
         { "claude/error-api-without-request-id.json", typeof(ClaudeErrorResponseWire) },
         { "claude/error-rate-limit-with-request-id.json", typeof(ClaudeErrorResponseWire) },
         { "codex/error-all-fields.json", typeof(CodexErrorResponseWire) },
@@ -37,7 +39,7 @@ public sealed class ProxyGoldenContractTests
         var input = envelope.RootElement.GetProperty("input");
         var expected = envelope.RootElement.GetProperty("expected");
 
-        var value = JsonSerializer.Deserialize(input.GetRawText(), contractType);
+        var value = WireJson.Deserialize(input, contractType);
         Assert.NotNull(value);
 
         using var actual = JsonDocument.Parse(JsonSerializer.Serialize(value, contractType));
@@ -56,7 +58,7 @@ public sealed class ProxyGoldenContractTests
             }
             """;
 
-        var request = JsonSerializer.Deserialize<ClaudeMessageRequestWire>(json);
+        var request = WireJson.Deserialize<ClaudeMessageRequestWire>(json);
         Assert.NotNull(request);
         Assert.NotNull(request.AdditionalProperties);
         Assert.Equal("fixture", request.AdditionalProperties["future_transport_hint"].GetProperty("mode").GetString());
@@ -70,12 +72,100 @@ public sealed class ProxyGoldenContractTests
     {
         const long expectedTokens = 4_294_967_296;
         using var envelope = JsonDocument.Parse(File.ReadAllBytes(GetFixturePath("codex/responses-response-mixed.json")));
-        var response = JsonSerializer.Deserialize<OpenAIResponsesResponseWire>(
+        var response = WireJson.Deserialize<OpenAIResponsesResponseWire>(
             envelope.RootElement.GetProperty("input").GetRawText());
 
         Assert.NotNull(response);
         Assert.NotNull(response.Usage);
         Assert.Equal(expectedTokens, response.Usage.InputTokens);
+    }
+
+    [Fact]
+    public void Claude_token_count_system_preserves_string_and_structured_shapes()
+    {
+        const string stringSystemJson = """
+            {
+              "model":"claude-fixture-token-count",
+              "messages":[{"role":"user","content":"Count this fixture."}],
+              "system":"Use synthetic fixture data only."
+            }
+            """;
+
+        var stringSystem = WireJson.Deserialize<ClaudeTokenCountRequestWire>(stringSystemJson);
+        Assert.NotNull(stringSystem);
+        Assert.Equal(JsonValueKind.String, stringSystem.System?.ValueKind);
+
+        using var stringRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(stringSystem));
+        Assert.Equal(
+            "Use synthetic fixture data only.",
+            stringRoundTrip.RootElement.GetProperty("system").GetString());
+
+        using var envelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("claude/token-count-request-structured-system.json")));
+        var structuredSystem = WireJson.Deserialize<ClaudeTokenCountRequestWire>(
+            envelope.RootElement.GetProperty("input").GetRawText());
+
+        Assert.NotNull(structuredSystem);
+        Assert.Equal(JsonValueKind.Array, structuredSystem.System?.ValueKind);
+
+        using var structuredRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(structuredSystem));
+        Assert.Equal(
+            "ephemeral",
+            structuredRoundTrip.RootElement
+                .GetProperty("system")[1]
+                .GetProperty("cache_control")
+                .GetProperty("type")
+                .GetString());
+    }
+
+    [Fact]
+    public void Claude_token_count_wire_preserves_unknown_properties()
+    {
+        const string requestJson = """
+            {
+              "model":"claude-fixture-token-count",
+              "messages":[{
+                "role":"user",
+                "content":"Count this fixture.",
+                "future_message_hint":{"priority":2}
+              }],
+              "system":[{"type":"future_system_block","value":true}],
+              "tools":[{"name":"fixture_tool","future_tool_hint":"keep"}],
+              "future_request_hint":{"mode":"fixture"}
+            }
+            """;
+
+        var request = WireJson.Deserialize<ClaudeTokenCountRequestWire>(requestJson);
+        Assert.NotNull(request);
+        Assert.Equal("fixture", request.AdditionalProperties?["future_request_hint"].GetProperty("mode").GetString());
+        Assert.Equal(2, request.Messages[0].AdditionalProperties?["future_message_hint"].GetProperty("priority").GetInt32());
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(request));
+        Assert.True(roundTrip.RootElement.GetProperty("system")[0].GetProperty("value").GetBoolean());
+        Assert.Equal(
+            "keep",
+            roundTrip.RootElement.GetProperty("tools")[0].GetProperty("future_tool_hint").GetString());
+
+        const string responseJson = """
+            {
+              "input_tokens":4294967296,
+              "future_count_metadata":{"unit":"tokens"}
+            }
+            """;
+
+        var response = WireJson.Deserialize<ClaudeTokenCountResponseWire>(responseJson);
+        Assert.NotNull(response);
+        Assert.Equal(
+            "tokens",
+            response.AdditionalProperties?["future_count_metadata"].GetProperty("unit").GetString());
+
+        using var responseRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(response));
+        Assert.Equal(
+            "tokens",
+            responseRoundTrip.RootElement
+                .GetProperty("future_count_metadata")
+                .GetProperty("unit")
+                .GetString());
     }
 
     [Fact]
@@ -90,7 +180,7 @@ public sealed class ProxyGoldenContractTests
             }
             """;
 
-        var usage = JsonSerializer.Deserialize<OpenAIChatUsageWire>(json);
+        var usage = WireJson.Deserialize<OpenAIChatUsageWire>(json);
         Assert.NotNull(usage);
         Assert.NotNull(usage.AdditionalProperties);
         Assert.Equal(4, usage.AdditionalProperties["future_usage_counter"].GetProperty("value").GetInt32());
@@ -130,7 +220,7 @@ public sealed class ProxyGoldenContractTests
             }
             """;
 
-        var chunk = JsonSerializer.Deserialize<OpenAIChatStreamChunkWire>(json);
+        var chunk = WireJson.Deserialize<OpenAIChatStreamChunkWire>(json);
 
         Assert.NotNull(chunk);
         Assert.Empty(chunk.Choices);
@@ -149,7 +239,7 @@ public sealed class ProxyGoldenContractTests
               "future_error_field":true
             }
             """;
-        var body = JsonSerializer.Deserialize<CodexErrorResponseWire>(json);
+        var body = WireJson.Deserialize<CodexErrorResponseWire>(json);
         Assert.NotNull(body);
 
         body = body with

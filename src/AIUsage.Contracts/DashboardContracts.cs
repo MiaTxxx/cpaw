@@ -5,7 +5,7 @@ namespace AIUsage.Contracts;
 public sealed record DashboardSnapshot
 {
     [JsonPropertyName("generatedAt")]
-    public required string GeneratedAt { get; init; }
+    public required Iso8601Timestamp GeneratedAt { get; init; }
 
     [JsonPropertyName("overview")]
     public required DashboardOverview Overview { get; init; }
@@ -17,7 +17,7 @@ public sealed record DashboardSnapshot
 public sealed record DashboardOverview
 {
     [JsonPropertyName("generatedAt")]
-    public required string GeneratedAt { get; init; }
+    public required Iso8601Timestamp GeneratedAt { get; init; }
 
     [JsonPropertyName("activeProviders")]
     public required long ActiveProviders { get; init; }
