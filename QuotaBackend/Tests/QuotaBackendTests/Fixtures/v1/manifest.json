@@ -139,6 +139,12 @@
       "sha256" : "2ec6432f6bb1ba36f60ae2ad2ccca760c65b0b6a0582a15ebbc8ba03fbbeb035"
     },
     {
+      "id" : "contracts/proxy/claude/message-request-document-cache-control-invalid",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/claude/message-request-document-cache-control-invalid.json",
+      "sha256" : "2995c999f1b659ae17de07945fef02c25d941014ccbbec23de2b8be5bf7ff8aa"
+    },
+    {
       "id" : "contracts/proxy/claude/message-request-document-known",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-document-known.json",
@@ -157,6 +163,12 @@
       "sha256" : "f3587b43fd2f75a31c639b46d9a77a5dcccd95c2c21733af9854fe0acab3bbf3"
     },
     {
+      "id" : "contracts/proxy/claude/message-request-known-optional-nulls-omitted",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/message-request-known-optional-nulls-omitted.json",
+      "sha256" : "ad28eda173f8972ccdf83934f54aa8eafa0da6c857a104268c40835e8b2d98d9"
+    },
+    {
       "id" : "contracts/proxy/claude/message-request-system-blocks-message-blocks",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-system-blocks-message-blocks.json",
@@ -167,6 +179,12 @@
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/message-request-system-string-message-text.json",
       "sha256" : "c7d53f229dabe9338ce97554ecb2eaae7f930b4237e1aa9403c811a50001d913"
+    },
+    {
+      "id" : "contracts/proxy/claude/message-request-text-cache-control-invalid",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/claude/message-request-text-cache-control-invalid.json",
+      "sha256" : "2665c8c3293deedd28c543de2e4194651e249d95f76673284748cfb2b8b094ba"
     },
     {
       "id" : "contracts/proxy/claude/message-request-tool-result-blocks-known",
