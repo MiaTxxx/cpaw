@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 40)
+        XCTAssertEqual(cases.count, 52)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -70,6 +70,91 @@ private enum ContractsV1GoldenCatalog {
         let claudeStreamDelta = try decode(
             ClaudeContentBlockDeltaEvent.self,
             from: ContractsProxyGoldenInputs.claudeContentBlockDeltaJSON
+        )
+        let claudeMessageStart = ClaudeMessageStartEvent(message: ClaudeMessageStart(
+            id: "msg_fixture_stream_001",
+            type: "message",
+            role: "assistant",
+            content: [.text(ClaudeTextBlock(text: ""))],
+            model: "claude-fixture-1",
+            stopReason: nil,
+            stopSequence: nil,
+            usage: ClaudeUsage(inputTokens: 4_294_967_296, outputTokens: 0)
+        ))
+        let claudeContentBlockStartText = ClaudeContentBlockStartEvent(
+            index: 0,
+            contentBlock: .text(ClaudeTextBlock(text: ""))
+        )
+        let claudeContentBlockStartThinking = ClaudeContentBlockStartEvent(
+            index: 1,
+            contentBlock: .thinking(ClaudeThinkingBlock(
+                thinking: "Use the fixture tool.",
+                signature: "<fixture-thinking-signature>"
+            ))
+        )
+        let claudeContentBlockStartToolUse = ClaudeContentBlockStartEvent(
+            index: 2,
+            contentBlock: .toolUse(ClaudeToolUseBlock(
+                id: "toolu_fixture_stream_001",
+                name: "lookup_fixture",
+                input: ["query": AnyCodable("quota")]
+            ))
+        )
+        let claudeTextDelta = ClaudeContentBlockDeltaEvent(
+            index: 0,
+            delta: .text(ClaudeTextDelta(type: "text_delta", text: "Hello Windows"))
+        )
+        let claudeThinkingDelta = ClaudeContentBlockDeltaEvent(
+            index: 1,
+            delta: .thinking(ClaudeThinkingDelta(thinking: "Let me reason about this."))
+        )
+        let claudeSignatureDelta = ClaudeContentBlockDeltaEvent(
+            index: 1,
+            delta: .signature(ClaudeSignatureDelta(signature: "sig_fixture_123"))
+        )
+        let claudeCitationsDelta = ClaudeContentBlockDeltaEvent(
+            index: 2,
+            delta: .citations(ClaudeCitationsDelta(citation: AnyCodable([
+                "type": AnyCodable("char_location"),
+                "start_char_index": AnyCodable(7),
+                "end_char_index": AnyCodable(19),
+            ])))
+        )
+        let claudeContentBlockStop = ClaudeContentBlockStopEvent(index: 3)
+        let claudeMessageDelta = ClaudeMessageDeltaEvent(
+            delta: ClaudeMessageDeltaContent(
+                stopReason: "pause_turn",
+                stopSequence: "<fixture-stop>"
+            ),
+            usage: ClaudeUsageDelta(outputTokens: 4_294_967_296)
+        )
+        let claudeFilesList = ClaudeFilesListResponse(
+            data: [
+                ClaudeFileObject(
+                    id: "file_fixture_001",
+                    filename: "fixture-large.jsonl",
+                    mimeType: "application/jsonl",
+                    sizeBytes: 4_294_967_296,
+                    createdAt: "2030-01-02T11:04:05+08:00",
+                    downloadable: true,
+                    scope: ClaudeFileScope(type: "workspace", id: "workspace_fixture_001")
+                ),
+                ClaudeFileObject(
+                    id: "file_fixture_002",
+                    filename: "fixture-small.txt",
+                    mimeType: "text/plain",
+                    sizeBytes: 7,
+                    createdAt: "2030-01-02T03:04:05Z",
+                    downloadable: false
+                ),
+            ],
+            hasMore: true,
+            firstId: "file_fixture_001",
+            lastId: "file_fixture_002"
+        )
+        let claudeDeletedFile = ClaudeDeletedFileResponse(
+            id: "file_fixture_deleted",
+            deleted: true
         )
         let claudeTokenCountRequest = try decode(
             ClaudeTokenCountRequest.self,
@@ -241,6 +326,77 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/claude/stream-content-block-delta",
                 path: "contracts/proxy/claude/stream-content-block-delta.json",
                 value: claudeStreamDelta
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-message-start-full",
+                path: "contracts/proxy/claude/stream-message-start-full.json",
+                value: claudeMessageStart,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIConvertProxyStreamingRoundTrip"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-start-text",
+                path: "contracts/proxy/claude/stream-content-block-start-text.json",
+                value: claudeContentBlockStartText,
+                sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockStartEventSupportsTextBlocks"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-start-thinking",
+                path: "contracts/proxy/claude/stream-content-block-start-thinking.json",
+                value: claudeContentBlockStartThinking,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIResponsesProxyStreamingEmitsThinkingDeltaBeforeText"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-start-tool-use",
+                path: "contracts/proxy/claude/stream-content-block-start-tool-use.json",
+                value: claudeContentBlockStartToolUse,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIResponsesProxyBuffersToolArgumentDeltasUntilRealToolMetadataArrives"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-delta-text",
+                path: "contracts/proxy/claude/stream-content-block-delta-text.json",
+                value: claudeTextDelta,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIConvertProxyStreamingRoundTrip"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-delta-thinking",
+                path: "contracts/proxy/claude/stream-content-block-delta-thinking.json",
+                value: claudeThinkingDelta,
+                sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockDeltaEventDecodesThinkingAndSignatureDeltas"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-delta-signature",
+                path: "contracts/proxy/claude/stream-content-block-delta-signature.json",
+                value: claudeSignatureDelta,
+                sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockDeltaEventDecodesThinkingAndSignatureDeltas"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-delta-citations",
+                path: "contracts/proxy/claude/stream-content-block-delta-citations.json",
+                value: claudeCitationsDelta
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-content-block-stop",
+                path: "contracts/proxy/claude/stream-content-block-stop.json",
+                value: claudeContentBlockStop,
+                sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockStopEventPreservesIndex"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/stream-message-delta",
+                path: "contracts/proxy/claude/stream-message-delta.json",
+                value: claudeMessageDelta,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testOpenAIResponsesProxyFineGrainedToolStreamingAllowsPartialJSONAndMaxTokensStopReason"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/files-list-full",
+                path: "contracts/proxy/claude/files-list-full.json",
+                value: claudeFilesList,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesListAndMetadataEndpointsBridgeOpenAIFileMetadata"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/file-deleted",
+                path: "contracts/proxy/claude/file-deleted.json",
+                value: claudeDeletedFile,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesDeleteEndpointBridgesOpenAIDelete"
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/token-count-request-structured-system",
