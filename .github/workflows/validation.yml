@@ -38,6 +38,25 @@ jobs:
         working-directory: QuotaBackend
         run: swift test
 
+      - name: Export Swift contract golden fixtures
+        env:
+          AIUSAGE_GOLDEN_OUTPUT: ${{ runner.temp }}/swift-goldens
+        run: swift test --package-path QuotaBackend --filter ContractsGoldenExporterTests.testExportContractsV1Goldens
+
+      - name: Validate exported golden fixtures
+        shell: bash
+        run: |
+          dotnet run --project eng/AIUsage.FixtureTool/AIUsage.FixtureTool.csproj \
+            --configuration Release --no-restore -- \
+            validate "$RUNNER_TEMP/swift-goldens"
+
+      - name: Upload Swift golden fixtures
+        uses: actions/upload-artifact@v6
+        with:
+          name: swift-contract-goldens
+          path: ${{ runner.temp }}/swift-goldens
+          if-no-files-found: error
+
       - name: Run Claude proxy regression
         run: bash ./scripts/run_claude_proxy_regression.sh
 
