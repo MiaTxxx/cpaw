@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.Desktop", "src\AIUs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.Contracts.Tests", "tests\AIUsage.Contracts.Tests\AIUsage.Contracts.Tests.csproj", "{88888888-8888-4888-8888-888888888888}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.FixtureTool", "eng\AIUsage.FixtureTool\AIUsage.FixtureTool.csproj", "{AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsage.FixtureTool.Tests", "tests\AIUsage.FixtureTool.Tests\AIUsage.FixtureTool.Tests.csproj", "{BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -56,6 +60,14 @@ Global
 		{88888888-8888-4888-8888-888888888888}.Debug|x64.Build.0 = Debug|x64
 		{88888888-8888-4888-8888-888888888888}.Release|x64.ActiveCfg = Release|x64
 		{88888888-8888-4888-8888-888888888888}.Release|x64.Build.0 = Release|x64
+		{AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA}.Debug|x64.ActiveCfg = Debug|x64
+		{AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA}.Debug|x64.Build.0 = Debug|x64
+		{AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA}.Release|x64.ActiveCfg = Release|x64
+		{AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA}.Release|x64.Build.0 = Release|x64
+		{BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB}.Debug|x64.ActiveCfg = Debug|x64
+		{BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB}.Debug|x64.Build.0 = Debug|x64
+		{BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB}.Release|x64.ActiveCfg = Release|x64
+		{BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

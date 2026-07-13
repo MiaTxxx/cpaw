@@ -25,6 +25,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.422
+
+      - name: Validate committed golden fixtures
+        shell: bash
+        run: |
+          dotnet restore eng/AIUsage.FixtureTool/AIUsage.FixtureTool.csproj --locked-mode
+          dotnet run --project eng/AIUsage.FixtureTool/AIUsage.FixtureTool.csproj \
+            --configuration Release --no-restore -- \
+            validate QuotaBackend/Tests/QuotaBackendTests/Fixtures
+
       - name: Run QuotaBackend tests
         working-directory: QuotaBackend
         run: swift test
@@ -60,6 +73,9 @@ jobs:
 
       - name: Build
         run: dotnet build AIUsage.Windows.sln --configuration Release --no-restore -p:Platform=x64
+
+      - name: Validate committed golden fixtures
+        run: dotnet run --project eng/AIUsage.FixtureTool/AIUsage.FixtureTool.csproj --configuration Release --no-restore -- validate QuotaBackend/Tests/QuotaBackendTests/Fixtures
 
       - name: Test
         run: dotnet test AIUsage.Windows.sln --configuration Release --no-build -p:Platform=x64
