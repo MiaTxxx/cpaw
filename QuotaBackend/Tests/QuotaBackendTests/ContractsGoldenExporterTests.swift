@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 80)
+        XCTAssertEqual(cases.count, 83)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -407,6 +407,24 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/proxy/claude/message-response-redacted-thinking.json",
                 value: claudeRedactedThinkingResponse,
                 sourceTest: "ClaudeProxyConverterTests.testClaudeContentBlockDecodesRedactedThinking"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/claude/message-request-known-optional-nulls-omitted",
+                path: "contracts/proxy/claude/message-request-known-optional-nulls-omitted.json",
+                inputJSON: ContractsProxyGoldenInputs.claudeMessageRequestKnownOptionalNullsJSON,
+                as: ClaudeMessageRequest.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/claude/message-request-text-cache-control-invalid",
+                path: "contracts/proxy/claude/message-request-text-cache-control-invalid.json",
+                inputJSON: #"{"model":"claude-fixture-content","messages":[{"role":"user","content":[{"type":"text","text":"fixture","cache_control":[]}]}],"max_tokens":64}"#,
+                as: ClaudeMessageRequest.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/claude/message-request-document-cache-control-invalid",
+                path: "contracts/proxy/claude/message-request-document-cache-control-invalid.json",
+                inputJSON: #"{"model":"claude-fixture-content","messages":[{"role":"user","content":[{"type":"document","source":{"type":"text","data":"fixture"},"cache_control":"invalid"}]}],"max_tokens":64}"#,
+                as: ClaudeMessageRequest.self
             ),
             .roundTrip(
                 id: "contracts/proxy/claude/stream-content-block-delta",

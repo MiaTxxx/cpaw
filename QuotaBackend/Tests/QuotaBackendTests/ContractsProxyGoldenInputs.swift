@@ -232,6 +232,33 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let claudeMessageRequestKnownOptionalNullsJSON = #"""
+    {
+      "model": "claude-fixture-content",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            { "type": "text", "text": "Null optionals fixture", "cache_control": null },
+            {
+              "type": "document",
+              "source": { "type": "text", "data": "Synthetic document" },
+              "citations": null,
+              "cache_control": null
+            },
+            {
+              "type": "tool_result",
+              "tool_use_id": "toolu_fixture_nulls",
+              "content": null,
+              "is_error": null
+            }
+          ]
+        }
+      ],
+      "max_tokens": 64
+    }
+    """#
+
     static let claudeContentBlockDeltaJSON = #"""
     {
       "type": "content_block_delta",
