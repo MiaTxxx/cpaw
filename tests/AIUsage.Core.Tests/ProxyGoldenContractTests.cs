@@ -34,6 +34,12 @@ public sealed class ProxyGoldenContractTests
         { "codex/responses-request-tool-loop.json", typeof(OpenAIResponsesRequestWire) },
         { "codex/responses-response-mixed.json", typeof(OpenAIResponsesResponseWire) },
         { "codex/stream-completed.json", typeof(OpenAIResponsesCompletedEventWire) },
+        { "codex/stream-output-item-added.json", typeof(OpenAIResponsesOutputItemAddedEventWire) },
+        { "codex/stream-output-item-done.json", typeof(OpenAIResponsesOutputItemDoneEventWire) },
+        { "codex/stream-output-text-delta.json", typeof(OpenAIResponsesOutputTextDeltaEventWire) },
+        { "codex/stream-reasoning-summary-text-delta.json", typeof(OpenAIResponsesReasoningSummaryTextDeltaEventWire) },
+        { "codex/stream-function-call-arguments-delta.json", typeof(OpenAIResponsesFunctionCallArgumentsDeltaEventWire) },
+        { "codex/stream-function-call-arguments-done.json", typeof(OpenAIResponsesFunctionCallArgumentsDoneEventWire) },
         { "opencode/chat-request-tool-loop.json", typeof(OpenAIChatCompletionRequestWire) },
         { "opencode/chat-response-malformed-usage.json", typeof(OpenAIChatCompletionResponseWire) },
         { "opencode/error-all-fields.json", typeof(OpenAIErrorResponseWire) },
@@ -90,6 +96,124 @@ public sealed class ProxyGoldenContractTests
         Assert.NotNull(response);
         Assert.NotNull(response.Usage);
         Assert.Equal(expectedTokens, response.Usage.InputTokens);
+    }
+
+    [Fact]
+    public void Codex_stream_indices_are_64_bit()
+    {
+        using var outputEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("codex/stream-output-text-delta.json")));
+        var outputDelta = WireJson.Deserialize<OpenAIResponsesOutputTextDeltaEventWire>(
+            outputEnvelope.RootElement.GetProperty("input"));
+
+        Assert.Equal(4_294_967_298, outputDelta.OutputIndex);
+        Assert.Equal(4_294_967_299, outputDelta.ContentIndex);
+
+        const string reasoningJson = """
+            {
+              "type":"future.reasoning.delta",
+              "output_index":4294967300,
+              "summary_index":4294967304,
+              "delta":"fixture"
+            }
+            """;
+        var reasoningDelta = WireJson.Deserialize<OpenAIResponsesReasoningSummaryTextDeltaEventWire>(
+            reasoningJson);
+
+        Assert.Equal(4_294_967_300, reasoningDelta.OutputIndex);
+        Assert.Equal(4_294_967_304, reasoningDelta.SummaryIndex);
+    }
+
+    [Fact]
+    public void Codex_optional_stream_fields_explicit_nulls_are_omitted_like_Swift()
+    {
+        const string json = """
+            {
+              "type":"future.function.arguments.done",
+              "item_id":null,
+              "output_index":4294967302,
+              "arguments":null,
+              "name":null,
+              "item":null
+            }
+            """;
+
+        var value = WireJson.Deserialize<OpenAIResponsesFunctionCallArgumentsDoneEventWire>(json);
+
+        Assert.Equal("future.function.arguments.done", value.Type);
+        Assert.Null(value.ItemId);
+        Assert.Null(value.Arguments);
+        Assert.Null(value.Name);
+        Assert.Null(value.Item);
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(value));
+        Assert.False(roundTrip.RootElement.TryGetProperty("item_id", out _));
+        Assert.False(roundTrip.RootElement.TryGetProperty("arguments", out _));
+        Assert.False(roundTrip.RootElement.TryGetProperty("name", out _));
+        Assert.False(roundTrip.RootElement.TryGetProperty("item", out _));
+    }
+
+    [Fact]
+    public void Codex_stream_wire_preserves_unknown_root_and_nested_properties()
+    {
+        const string json = """
+            {
+              "type":"future.function.arguments.done",
+              "output_index":4294967302,
+              "item":{
+                "type":"future_function_call",
+                "call_id":"call_fixture",
+                "name":"lookup_fixture",
+                "arguments":"{}",
+                "future_nested_hint":{"priority":2}
+              },
+              "future_event_hint":{"mode":"fixture"}
+            }
+            """;
+
+        var value = WireJson.Deserialize<OpenAIResponsesFunctionCallArgumentsDoneEventWire>(json);
+
+        Assert.Equal("future.function.arguments.done", value.Type);
+        Assert.Equal("future_function_call", value.Item?.Type);
+        Assert.Equal(2, value.Item?.AdditionalProperties?["future_nested_hint"].GetProperty("priority").GetInt32());
+        Assert.Equal("fixture", value.AdditionalProperties?["future_event_hint"].GetProperty("mode").GetString());
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(value));
+        Assert.Equal(
+            2,
+            roundTrip.RootElement
+                .GetProperty("item")
+                .GetProperty("future_nested_hint")
+                .GetProperty("priority")
+                .GetInt32());
+        Assert.Equal(
+            "fixture",
+            roundTrip.RootElement
+                .GetProperty("future_event_hint")
+                .GetProperty("mode")
+                .GetString());
+    }
+
+    [Theory]
+    [InlineData(typeof(OpenAIResponsesOutputItemAddedEventWire), "{\"output_index\":0,\"item\":{}}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemAddedEventWire), "{\"type\":\"future\",\"output_index\":0}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemAddedEventWire), "{\"type\":null,\"output_index\":0,\"item\":{}}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemAddedEventWire), "{\"type\":\"future\",\"output_index\":0,\"item\":null}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemAddedEventWire), "{\"type\":\"future\",\"output_index\":0,\"item\":[]}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemDoneEventWire), "{\"type\":\"future\",\"output_index\":0,\"item\":null}")]
+    [InlineData(typeof(OpenAIResponsesOutputItemDoneEventWire), "{\"type\":\"future\",\"output_index\":0,\"item\":\"not-an-object\"}")]
+    [InlineData(typeof(OpenAIResponsesOutputTextDeltaEventWire), "{\"type\":\"future\",\"item_id\":null,\"output_index\":0,\"content_index\":0,\"delta\":\"\"}")]
+    [InlineData(typeof(OpenAIResponsesOutputTextDeltaEventWire), "{\"type\":\"future\",\"item_id\":\"item\",\"output_index\":0,\"content_index\":0}")]
+    [InlineData(typeof(OpenAIResponsesOutputTextDeltaEventWire), "{\"type\":\"future\",\"item_id\":\"item\",\"output_index\":0,\"content_index\":0,\"delta\":null}")]
+    [InlineData(typeof(OpenAIResponsesReasoningSummaryTextDeltaEventWire), "{\"type\":\"future\",\"output_index\":0,\"delta\":null}")]
+    [InlineData(typeof(OpenAIResponsesFunctionCallArgumentsDeltaEventWire), "{\"type\":\"future\",\"output_index\":0,\"delta\":null}")]
+    [InlineData(typeof(OpenAIResponsesFunctionCallArgumentsDoneEventWire), "{\"type\":null,\"output_index\":0}")]
+    [InlineData(typeof(OpenAIResponsesFunctionCallArgumentsDoneEventWire), "{\"type\":\"future\",\"output_index\":0,\"item\":{\"type\":\"function_call\",\"call_id\":null,\"name\":\"fixture\",\"arguments\":\"{}\"}}")]
+    public void Codex_stream_wire_rejects_required_nulls(Type contractType, string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]

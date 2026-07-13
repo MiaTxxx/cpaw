@@ -117,6 +117,178 @@ public sealed record OpenAIResponsesCompletedEventWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
+public sealed record OpenAIResponsesOutputItemAddedEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("item")]
+    public required JsonElement Item { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        OpenAIResponsesStreamWireValidation.RequireObject(Item, "item");
+}
+
+public sealed record OpenAIResponsesOutputItemDoneEventWire : IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("item")]
+    public required JsonElement Item { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        OpenAIResponsesStreamWireValidation.RequireObject(Item, "item");
+}
+
+public sealed record OpenAIResponsesOutputTextDeltaEventWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("item_id")]
+    public required string ItemId { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("content_index")]
+    public required long ContentIndex { get; init; }
+
+    [JsonPropertyName("delta")]
+    public required string Delta { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIResponsesReasoningSummaryTextDeltaEventWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("item_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ItemId { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("summary_index")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SummaryIndex { get; init; }
+
+    [JsonPropertyName("delta")]
+    public required string Delta { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIResponsesFunctionCallArgumentsDeltaEventWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("item_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ItemId { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("delta")]
+    public required string Delta { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIResponsesFunctionCallArgumentsDoneEventWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("item_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ItemId { get; init; }
+
+    [JsonPropertyName("output_index")]
+    public required long OutputIndex { get; init; }
+
+    [JsonPropertyName("arguments")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Arguments { get; init; }
+
+    [JsonPropertyName("name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("item")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OpenAIResponsesFunctionCallWire? Item { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIResponsesFunctionCallWire
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("call_id")]
+    public required string CallId { get; init; }
+
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    [JsonPropertyName("arguments")]
+    public required string Arguments { get; init; }
+
+    [JsonPropertyName("status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("created_by")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CreatedBy { get; init; }
+
+    [JsonPropertyName("namespace")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Namespace { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+internal static class OpenAIResponsesStreamWireValidation
+{
+    public static void RequireObject(JsonElement value, string propertyName)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException($"OpenAI Responses stream requires object {propertyName}.");
+        }
+    }
+}
+
 [JsonConverter(typeof(CodexErrorResponseWireJsonConverter))]
 public sealed record CodexErrorResponseWire
 {

@@ -265,6 +265,42 @@
       "sha256" : "cfc1fe111d5e0f60642f77af3d856071b238003ade53e42f92590c6e57c7166a"
     },
     {
+      "id" : "contracts/proxy/codex/stream-function-call-arguments-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-function-call-arguments-delta.json",
+      "sha256" : "6a31478dbbb494ba676d76e675fb43eec929d06c56fc89ba61d07185a1441dc2"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-function-call-arguments-done",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-function-call-arguments-done.json",
+      "sha256" : "6a0e82246a3d5d670d81483028bb7c879094f23c39bed784525de623179fb2a5"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-output-item-added",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-output-item-added.json",
+      "sha256" : "5a471b301498652a465f61d5369e2038e0ff9a1f3db81c1749a96163a50e508e"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-output-item-done",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-output-item-done.json",
+      "sha256" : "e98af459398e54ea3c65da5ca4ae24f0b29e4efca8a80591cadedc0b2d652c72"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-output-text-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-output-text-delta.json",
+      "sha256" : "454cfd1fc6b26963acaf6de48e39774a552603a9b438af0a548d4b823bddd829"
+    },
+    {
+      "id" : "contracts/proxy/codex/stream-reasoning-summary-text-delta",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/codex/stream-reasoning-summary-text-delta.json",
+      "sha256" : "4e17e1c2b6cce5f6329fbb6d7919e9185335dc7179cf0cedcb5f0c0e8084f5ee"
+    },
+    {
       "id" : "contracts/proxy/opencode/chat-request-tool-loop",
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/chat-request-tool-loop.json",
