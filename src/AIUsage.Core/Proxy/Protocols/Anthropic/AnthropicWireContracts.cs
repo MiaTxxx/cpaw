@@ -521,7 +521,7 @@ public sealed record ClaudeFileObjectWire
     public required long SizeBytes { get; init; }
 
     [JsonPropertyName("created_at")]
-    public required string CreatedAt { get; init; }
+    public required WireIso8601Timestamp CreatedAt { get; init; }
 
     [JsonPropertyName("downloadable")]
     public required bool Downloadable { get; init; }
