@@ -81,7 +81,7 @@ internal sealed class OpenAIChatUsageWireJsonConverter : JsonConverter<OpenAICha
 
         try
         {
-            return JsonSerializer.Deserialize<T>(value.GetRawText(), options);
+            return WireJson.Deserialize<T>(value, options);
         }
         catch (JsonException)
         {
@@ -199,9 +199,7 @@ internal sealed class OpenAIChatStreamChunkWireJsonConverter : JsonConverter<Ope
 
         try
         {
-            return JsonSerializer.Deserialize<IReadOnlyList<OpenAIChatStreamChoiceWire>>(
-                value.GetRawText(),
-                options) ?? [];
+            return WireJson.Deserialize<IReadOnlyList<OpenAIChatStreamChoiceWire>>(value, options);
         }
         catch (JsonException)
         {

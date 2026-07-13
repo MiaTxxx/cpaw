@@ -18,8 +18,7 @@ internal sealed class CodexErrorResponseWireJsonConverter : JsonConverter<CodexE
             throw new JsonException("Codex error response requires an error object.");
         }
 
-        var error = JsonSerializer.Deserialize<CodexErrorBodyWire>(errorElement.GetRawText(), options)
-            ?? throw new JsonException("Codex error body decoded to null.");
+        var error = WireJson.Deserialize<CodexErrorBodyWire>(errorElement, options);
         Dictionary<string, JsonElement>? extensionData = null;
         foreach (var property in document.RootElement.EnumerateObject())
         {
