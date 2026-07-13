@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 65)
+        XCTAssertEqual(cases.count, 73)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -553,6 +553,30 @@ private enum ContractsV1GoldenCatalog {
                 inputJSON: ContractsProxyGoldenInputs.openAIChatUsageOnlyStreamChunkJSON,
                 as: OpenAIStreamChunk.self
             ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/stream-choice-usage",
+                path: "contracts/proxy/opencode/stream-choice-usage.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatChoiceUsageStreamChunkJSON,
+                as: OpenAIStreamChunk.self
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/stream-malformed-choice-dropped",
+                path: "contracts/proxy/opencode/stream-malformed-choice-dropped.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatMalformedChoiceStreamChunkJSON,
+                as: OpenAIStreamChunk.self
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/stream-choice-malformed-usage-ignored",
+                path: "contracts/proxy/opencode/stream-choice-malformed-usage-ignored.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatMalformedChoiceUsageStreamChunkJSON,
+                as: OpenAIStreamChunk.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/chat-response-malformed-choice-rejected",
+                path: "contracts/proxy/opencode/chat-response-malformed-choice-rejected.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatMalformedResponseChoiceJSON,
+                as: OpenAIChatCompletionResponse.self
+            ),
             .roundTrip(
                 id: "contracts/proxy/claude/error-api-without-request-id",
                 path: "contracts/proxy/claude/error-api-without-request-id.json",
@@ -577,6 +601,30 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/opencode/error-message-only",
                 path: "contracts/proxy/opencode/error-message-only.json",
                 value: openAIMessageOnlyError
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/error-null-body",
+                path: "contracts/proxy/opencode/error-null-body.json",
+                inputJSON: #"{"error":null}"#,
+                as: OpenAIErrorResponse.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/error-null-message",
+                path: "contracts/proxy/opencode/error-null-message.json",
+                inputJSON: #"{"error":{"message":null}}"#,
+                as: OpenAIErrorResponse.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/error-missing-body",
+                path: "contracts/proxy/opencode/error-missing-body.json",
+                inputJSON: "{}",
+                as: OpenAIErrorResponse.self
+            ),
+            .decodeFailure(
+                id: "contracts/proxy/opencode/error-missing-message",
+                path: "contracts/proxy/opencode/error-missing-message.json",
+                inputJSON: #"{"error":{}}"#,
+                as: OpenAIErrorResponse.self
             ),
             .encodedSSELifecycle(
                 id: "contracts/proxy/claude/sse-lifecycle",

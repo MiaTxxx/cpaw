@@ -457,6 +457,69 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let openAIChatChoiceUsageStreamChunkJSON = #"""
+    {
+      "id": "chatcmpl_fixture_choice_usage",
+      "object": "chat.completion.chunk",
+      "created": 1893553445,
+      "model": "gpt-fixture-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": { "content": "Fixture choice usage" },
+          "finish_reason": null,
+          "usage": {
+            "prompt_tokens": 4294967296,
+            "completion_tokens": 8,
+            "total_tokens": 4294967304,
+            "prompt_tokens_details": { "cached_tokens": 256 }
+          }
+        }
+      ]
+    }
+    """#
+
+    static let openAIChatMalformedChoiceStreamChunkJSON = #"""
+    {
+      "id": "chatcmpl_fixture_malformed_choice",
+      "object": "chat.completion.chunk",
+      "created": 1893553445,
+      "model": "gpt-fixture-chat",
+      "choices": [
+        { "index": 0, "delta": null, "finish_reason": "stop" }
+      ]
+    }
+    """#
+
+    static let openAIChatMalformedChoiceUsageStreamChunkJSON = #"""
+    {
+      "id": "chatcmpl_fixture_malformed_choice_usage",
+      "object": "chat.completion.chunk",
+      "created": 1893553445,
+      "model": "gpt-fixture-chat",
+      "choices": [
+        {
+          "index": 0,
+          "delta": { "content": "Keep this choice" },
+          "finish_reason": null,
+          "usage": "not-an-object"
+        }
+      ]
+    }
+    """#
+
+    static let openAIChatMalformedResponseChoiceJSON = #"""
+    {
+      "id": "chatcmpl_fixture_malformed_choice",
+      "object": "chat.completion",
+      "created": 1893553445,
+      "model": "gpt-fixture-chat",
+      "choices": [
+        { "index": 0, "message": null, "finish_reason": "stop" }
+      ]
+    }
+    """#
+
     static let codexResponsesRequestJSON = #"""
     {
       "model": "gpt-fixture-codex",
