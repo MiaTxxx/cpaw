@@ -142,7 +142,11 @@ public sealed class ProxyGoldenContractTests
                 "future_message_hint":{"priority":2}
               }],
               "system":[{"type":"future_system_block","value":true}],
-              "tools":[{"name":"fixture_tool","future_tool_hint":"keep"}],
+              "tools":[{
+                "name":"fixture_tool",
+                "input_schema":{"type":"object"},
+                "future_tool_hint":"keep"
+              }],
               "future_request_hint":{"mode":"fixture"}
             }
             """;
@@ -178,6 +182,83 @@ public sealed class ProxyGoldenContractTests
                 .GetProperty("future_count_metadata")
                 .GetProperty("unit")
                 .GetString());
+    }
+
+    [Fact]
+    public void Claude_request_configuration_is_typed_and_preserves_nested_unknown_properties()
+    {
+        const string json = """
+            {
+              "model":"claude-fixture-config",
+              "messages":[{"role":"user","content":"Configure the fixture."}],
+              "max_tokens":64,
+              "tools":[{
+                "name":"lookup_fixture",
+                "description":"Reads fixture data",
+                "input_schema":{"type":"object","properties":{"query":{"type":"string"}}},
+                "eager_input_streaming":true,
+                "future_tool_hint":{"mode":"fixture"}
+              }],
+              "tool_choice":{
+                "type":"tool",
+                "name":"lookup_fixture",
+                "disable_parallel_tool_use":true,
+                "future_choice_hint":1
+              },
+              "metadata":{"user_id":"fixture-user","future_metadata_hint":true},
+              "thinking":{
+                "type":"enabled",
+                "budget_tokens":4294967296,
+                "display":"summarized",
+                "future_thinking_hint":"keep"
+              },
+              "output_config":{
+                "effort":"medium",
+                "format":{
+                  "type":"json_schema",
+                  "schema":{"type":"object"},
+                  "future_format_hint":false
+                },
+                "future_output_hint":null
+              }
+            }
+            """;
+
+        var request = WireJson.Deserialize<ClaudeMessageRequestWire>(json);
+
+        var tool = Assert.Single(request.Tools ?? []);
+        Assert.Equal("object", tool.InputSchema["type"].GetString());
+        Assert.True(tool.EagerInputStreaming);
+        Assert.Equal("fixture", tool.AdditionalProperties?["future_tool_hint"].GetProperty("mode").GetString());
+        Assert.Equal("lookup_fixture", request.ToolChoice?.Name);
+        Assert.Equal(1, request.ToolChoice?.AdditionalProperties?["future_choice_hint"].GetInt32());
+        Assert.True(request.Metadata?.AdditionalProperties?["future_metadata_hint"].GetBoolean());
+        Assert.Equal(4_294_967_296, request.Thinking?.BudgetTokens);
+        Assert.Equal("keep", request.Thinking?.AdditionalProperties?["future_thinking_hint"].GetString());
+        Assert.Equal("object", request.OutputConfig?.Format?.Schema?["type"].GetString());
+        Assert.False(request.OutputConfig?.Format?.AdditionalProperties?["future_format_hint"].GetBoolean());
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(request));
+        Assert.Equal(
+            JsonValueKind.Null,
+            roundTrip.RootElement.GetProperty("output_config").GetProperty("future_output_hint").ValueKind);
+    }
+
+    [Theory]
+    [InlineData(typeof(ClaudeToolWire), "{\"name\":null,\"input_schema\":{}}")]
+    [InlineData(typeof(ClaudeToolWire), "{\"name\":\"fixture\",\"input_schema\":null}")]
+    [InlineData(typeof(ClaudeToolWire), "{\"name\":\"fixture\",\"input_schema\":[]}")]
+    [InlineData(typeof(ClaudeToolChoiceWire), "{\"type\":null}")]
+    [InlineData(typeof(ClaudeThinkingConfigWire), "{\"type\":null}")]
+    [InlineData(typeof(ClaudeOutputFormatWire), "{\"type\":null}")]
+    [InlineData(typeof(ClaudeOutputFormatWire), "{\"type\":\"json_schema\",\"schema\":[]}")]
+    public void Claude_request_configuration_rejects_required_nulls_and_invalid_object_shapes(
+        Type contractType,
+        string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
