@@ -20,6 +20,9 @@ public sealed class ProxyGoldenContractTests
         { "claude/error-rate-limit-with-request-id.json", typeof(ClaudeErrorResponseWire) },
         { "claude/file-deleted.json", typeof(ClaudeDeletedFileResponseWire) },
         { "claude/files-list-full.json", typeof(ClaudeFilesListResponseWire) },
+        { "claude/openai-upstream-file-deleted.json", typeof(OpenAIDeletedFileResponseWire) },
+        { "claude/openai-upstream-file-list-full.json", typeof(OpenAIFileListResponseWire) },
+        { "claude/openai-upstream-file-object-full.json", typeof(OpenAIFileObjectWire) },
         { "claude/stream-content-block-delta-citations.json", typeof(ClaudeContentBlockDeltaEventWire) },
         { "claude/stream-content-block-delta-signature.json", typeof(ClaudeContentBlockDeltaEventWire) },
         { "claude/stream-content-block-delta-text.json", typeof(ClaudeContentBlockDeltaEventWire) },
@@ -445,6 +448,110 @@ public sealed class ProxyGoldenContractTests
         Assert.Equal("keep", file.AdditionalProperties?["future_file_hint"].GetString());
         Assert.Equal(1, file.Scope?.AdditionalProperties?["future_scope_hint"].GetInt32());
         Assert.Equal(JsonValueKind.Null, files.AdditionalProperties?["future_list_hint"].ValueKind);
+    }
+
+    [Fact]
+    public void OpenAI_upstream_file_wire_uses_64_bit_epoch_fields_and_omits_optional_nulls()
+    {
+        using var objectEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("claude/openai-upstream-file-object-full.json")));
+        var file = WireJson.Deserialize<OpenAIFileObjectWire>(objectEnvelope.RootElement.GetProperty("input"));
+
+        Assert.Equal(4_294_967_296, file.Bytes);
+        Assert.Equal(4_294_967_297, file.CreatedAt);
+
+        using var listEnvelope = JsonDocument.Parse(File.ReadAllBytes(
+            GetFixturePath("claude/openai-upstream-file-list-full.json")));
+        var list = WireJson.Deserialize<OpenAIFileListResponseWire>(listEnvelope.RootElement.GetProperty("input"));
+        var minimalFile = list.Data[1];
+
+        Assert.Null(minimalFile.Bytes);
+        Assert.Null(minimalFile.CreatedAt);
+        Assert.Null(minimalFile.Filename);
+        Assert.Null(minimalFile.Purpose);
+        Assert.Null(minimalFile.Status);
+        Assert.Null(minimalFile.MimeType);
+        Assert.Null(minimalFile.Deleted);
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(minimalFile));
+        Assert.Equal(2, roundTrip.RootElement.EnumerateObject().Count());
+        Assert.Equal("file_fixture_upstream_002", roundTrip.RootElement.GetProperty("id").GetString());
+        Assert.Equal("file", roundTrip.RootElement.GetProperty("object").GetString());
+
+        const string nullHasMoreJson = """
+            {"object":"list","data":[],"has_more":null}
+            """;
+        var listWithoutHasMore = WireJson.Deserialize<OpenAIFileListResponseWire>(nullHasMoreJson);
+        Assert.Null(listWithoutHasMore.HasMore);
+
+        using var listRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(listWithoutHasMore));
+        Assert.False(listRoundTrip.RootElement.TryGetProperty("has_more", out _));
+    }
+
+    [Fact]
+    public void OpenAI_upstream_file_wire_preserves_unknown_properties()
+    {
+        const string json = """
+            {
+              "object":"list",
+              "data":[{
+                "id":"file_fixture",
+                "object":"file",
+                "future_file_hint":{"mode":"fixture"}
+              }],
+              "future_list_hint":true
+            }
+            """;
+
+        var list = WireJson.Deserialize<OpenAIFileListResponseWire>(json);
+
+        Assert.True(list.AdditionalProperties?["future_list_hint"].GetBoolean());
+        Assert.Equal(
+            "fixture",
+            list.Data[0].AdditionalProperties?["future_file_hint"].GetProperty("mode").GetString());
+
+        const string deletedJson = """
+            {
+              "id":"file_fixture",
+              "object":"file",
+              "deleted":true,
+              "future_delete_hint":1
+            }
+            """;
+        var deleted = WireJson.Deserialize<OpenAIDeletedFileResponseWire>(deletedJson);
+        Assert.Equal(1, deleted.AdditionalProperties?["future_delete_hint"].GetInt32());
+
+        using var roundTrip = JsonDocument.Parse(JsonSerializer.Serialize(list));
+        Assert.True(roundTrip.RootElement.GetProperty("future_list_hint").GetBoolean());
+        Assert.Equal(
+            "fixture",
+            roundTrip.RootElement
+                .GetProperty("data")[0]
+                .GetProperty("future_file_hint")
+                .GetProperty("mode")
+                .GetString());
+
+        using var deletedRoundTrip = JsonDocument.Parse(JsonSerializer.Serialize(deleted));
+        Assert.Equal(1, deletedRoundTrip.RootElement.GetProperty("future_delete_hint").GetInt32());
+    }
+
+    [Theory]
+    [InlineData(typeof(OpenAIFileObjectWire), "{\"id\":null,\"object\":\"file\"}")]
+    [InlineData(typeof(OpenAIFileObjectWire), "{\"id\":\"file_fixture\",\"object\":null}")]
+    [InlineData(typeof(OpenAIFileListResponseWire), "{\"object\":null,\"data\":[]}")]
+    [InlineData(typeof(OpenAIFileListResponseWire), "{\"object\":\"list\",\"data\":null}")]
+    [InlineData(typeof(OpenAIFileListResponseWire), "{\"object\":\"list\",\"data\":[null]}")]
+    [InlineData(typeof(OpenAIDeletedFileResponseWire), "{\"id\":null,\"object\":\"file\",\"deleted\":true}")]
+    [InlineData(typeof(OpenAIDeletedFileResponseWire), "{\"id\":\"file_fixture\",\"object\":null,\"deleted\":true}")]
+    [InlineData(typeof(OpenAIDeletedFileResponseWire), "{\"id\":\"file_fixture\",\"object\":\"file\",\"deleted\":null}")]
+    [InlineData(typeof(OpenAIDeletedFileResponseWire), "{\"id\":\"file_fixture\",\"object\":\"file\"}")]
+    public void OpenAI_upstream_file_wire_rejects_required_nulls_and_missing_members(
+        Type contractType,
+        string json)
+    {
+        var exception = Assert.Throws<WireJsonException>(() => WireJson.Deserialize(json, contractType));
+
+        Assert.Null(exception.InnerException);
     }
 
     [Theory]

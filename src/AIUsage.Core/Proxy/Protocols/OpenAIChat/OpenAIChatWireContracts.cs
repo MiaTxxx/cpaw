@@ -240,6 +240,77 @@ public sealed record OpenAIChatDeltaWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
+public sealed record OpenAIFileObjectWire
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("object")]
+    public required string Object { get; init; }
+
+    [JsonPropertyName("bytes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? Bytes { get; init; }
+
+    [JsonPropertyName("created_at")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? CreatedAt { get; init; }
+
+    [JsonPropertyName("filename")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Filename { get; init; }
+
+    [JsonPropertyName("purpose")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Purpose { get; init; }
+
+    [JsonPropertyName("status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("mime_type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MimeType { get; init; }
+
+    [JsonPropertyName("deleted")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Deleted { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIFileListResponseWire
+{
+    [JsonPropertyName("object")]
+    public required string Object { get; init; }
+
+    [JsonPropertyName("data")]
+    public required IReadOnlyList<OpenAIFileObjectWire> Data { get; init; }
+
+    [JsonPropertyName("has_more")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? HasMore { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record OpenAIDeletedFileResponseWire
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("object")]
+    public required string Object { get; init; }
+
+    [JsonPropertyName("deleted")]
+    public required bool Deleted { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
 public sealed record OpenAIErrorResponseWire
 {
     [JsonPropertyName("error")]

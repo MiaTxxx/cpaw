@@ -151,6 +151,24 @@
       "sha256" : "6248f0bd44468ec4432b3856b2e6d268816b6fb6be72407889fac89fe2c314c6"
     },
     {
+      "id" : "contracts/proxy/claude/openai-upstream-file-deleted",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/openai-upstream-file-deleted.json",
+      "sha256" : "5e0b11b2c10945be52df3b7784ecf1b28648d0b4a90bb3100da705ca92d9e2fa"
+    },
+    {
+      "id" : "contracts/proxy/claude/openai-upstream-file-list-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/openai-upstream-file-list-full.json",
+      "sha256" : "0e318b37d29e0763dacb2842b99b7739efd3d9cf80d4d037ef6d0fa26f8de42c"
+    },
+    {
+      "id" : "contracts/proxy/claude/openai-upstream-file-object-full",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/claude/openai-upstream-file-object-full.json",
+      "sha256" : "4bc20663444cb51fa999454b0b3474ccff86beba800ef048050276f0ce90fc16"
+    },
+    {
       "id" : "contracts/proxy/claude/sse-lifecycle",
       "kind" : "json-transform",
       "path" : "contracts/proxy/claude/sse-lifecycle.json",
