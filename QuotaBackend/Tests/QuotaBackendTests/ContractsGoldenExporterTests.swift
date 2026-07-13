@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 58)
+        XCTAssertEqual(cases.count, 61)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -172,6 +172,18 @@ private enum ContractsV1GoldenCatalog {
         let openAIChatStreamChunk = try decode(
             OpenAIStreamChunk.self,
             from: ContractsProxyGoldenInputs.openAIChatStreamChunkJSON
+        )
+        let openAIFileObject = try decode(
+            OpenAIFileObject.self,
+            from: ContractsProxyGoldenInputs.openAIFileObjectFullJSON
+        )
+        let openAIFileList = try decode(
+            OpenAIFileListResponse.self,
+            from: ContractsProxyGoldenInputs.openAIFileListFullJSON
+        )
+        let openAIDeletedFile = try decode(
+            OpenAIDeletedFileResponse.self,
+            from: ContractsProxyGoldenInputs.openAIDeletedFileJSON
         )
         let codexResponsesRequest = try decode(
             OpenAIResponsesRequest.self,
@@ -396,6 +408,25 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/claude/file-deleted",
                 path: "contracts/proxy/claude/file-deleted.json",
                 value: claudeDeletedFile,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesDeleteEndpointBridgesOpenAIDelete"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/openai-upstream-file-object-full",
+                path: "contracts/proxy/claude/openai-upstream-file-object-full.json",
+                value: openAIFileObject,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesCreateEndpointBridgesAnthropicMultipartUploadToOpenAI"
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/claude/openai-upstream-file-list-full",
+                path: "contracts/proxy/claude/openai-upstream-file-list-full.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIFileListFullJSON,
+                as: OpenAIFileListResponse.self,
+                sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesListAndMetadataEndpointsBridgeOpenAIFileMetadata"
+            ),
+            .roundTrip(
+                id: "contracts/proxy/claude/openai-upstream-file-deleted",
+                path: "contracts/proxy/claude/openai-upstream-file-deleted.json",
+                value: openAIDeletedFile,
                 sourceTest: "QuotaHTTPServerProxyIntegrationTests.testFilesDeleteEndpointBridgesOpenAIDelete"
             ),
             .roundTrip(

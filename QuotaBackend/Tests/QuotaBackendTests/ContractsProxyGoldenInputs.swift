@@ -222,6 +222,59 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let openAIFileObjectFullJSON = #"""
+    {
+      "id": "file_fixture_upstream_001",
+      "object": "file",
+      "bytes": 4294967296,
+      "created_at": 4294967297,
+      "filename": "fixture-large.jsonl",
+      "purpose": "user_data",
+      "status": "processed",
+      "mime_type": "application/jsonl",
+      "deleted": false
+    }
+    """#
+
+    static let openAIFileListFullJSON = #"""
+    {
+      "object": "list",
+      "data": [
+        {
+          "id": "file_fixture_upstream_001",
+          "object": "file",
+          "bytes": 4294967296,
+          "created_at": 4294967297,
+          "filename": "fixture-large.jsonl",
+          "purpose": "user_data",
+          "status": "processed",
+          "mime_type": "application/jsonl",
+          "deleted": false
+        },
+        {
+          "id": "file_fixture_upstream_002",
+          "object": "file",
+          "bytes": null,
+          "created_at": null,
+          "filename": null,
+          "purpose": null,
+          "status": null,
+          "mime_type": null,
+          "deleted": null
+        }
+      ],
+      "has_more": true
+    }
+    """#
+
+    static let openAIDeletedFileJSON = #"""
+    {
+      "id": "file_fixture_upstream_deleted",
+      "object": "file",
+      "deleted": true
+    }
+    """#
+
     static let openAIChatRequestJSON = #"""
     {
       "model": "gpt-fixture-chat",
