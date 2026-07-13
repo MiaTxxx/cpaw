@@ -50,14 +50,22 @@ public sealed class ProxyGoldenContractTests
         { "opencode/error-all-fields.json", typeof(OpenAIErrorResponseWire) },
         { "opencode/error-message-only.json", typeof(OpenAIErrorResponseWire) },
         { "opencode/chat-response-cache-usage.json", typeof(OpenAIChatCompletionResponseWire) },
+        { "opencode/stream-choice-malformed-usage-ignored.json", typeof(OpenAIChatStreamChunkWire) },
+        { "opencode/stream-choice-usage.json", typeof(OpenAIChatStreamChunkWire) },
+        { "opencode/stream-malformed-choice-dropped.json", typeof(OpenAIChatStreamChunkWire) },
         { "opencode/stream-tool-delta.json", typeof(OpenAIChatStreamChunkWire) },
         { "opencode/stream-usage-only.json", typeof(OpenAIChatStreamChunkWire) },
     };
 
-    public static TheoryData<string> ProxyDecodeFailureFixtures => new()
+    public static TheoryData<string, Type> ProxyDecodeFailureFixtures => new()
     {
-        { "opencode/chat-request-invalid-content-scalar.json" },
-        { "opencode/chat-request-content-part-missing-type.json" },
+        { "opencode/chat-request-invalid-content-scalar.json", typeof(OpenAIChatCompletionRequestWire) },
+        { "opencode/chat-request-content-part-missing-type.json", typeof(OpenAIChatCompletionRequestWire) },
+        { "opencode/chat-response-malformed-choice-rejected.json", typeof(OpenAIChatCompletionResponseWire) },
+        { "opencode/error-missing-body.json", typeof(OpenAIErrorResponseWire) },
+        { "opencode/error-missing-message.json", typeof(OpenAIErrorResponseWire) },
+        { "opencode/error-null-body.json", typeof(OpenAIErrorResponseWire) },
+        { "opencode/error-null-message.json", typeof(OpenAIErrorResponseWire) },
     };
 
     [Theory]
@@ -77,13 +85,15 @@ public sealed class ProxyGoldenContractTests
 
     [Theory]
     [MemberData(nameof(ProxyDecodeFailureFixtures))]
-    public void Windows_proxy_wire_contracts_reject_Swift_decode_failure_goldens(string relativePath)
+    public void Windows_proxy_wire_contracts_reject_Swift_decode_failure_goldens(
+        string relativePath,
+        Type contractType)
     {
         using var envelope = JsonDocument.Parse(File.ReadAllBytes(GetFixturePath(relativePath)));
         var input = envelope.RootElement.GetProperty("input");
 
         var exception = Assert.Throws<WireJsonException>(
-            () => WireJson.Deserialize<OpenAIChatCompletionRequestWire>(input));
+            () => WireJson.Deserialize(input, contractType));
 
         Assert.Null(exception.InnerException);
         Assert.DoesNotContain(input.GetRawText(), exception.Message, StringComparison.Ordinal);

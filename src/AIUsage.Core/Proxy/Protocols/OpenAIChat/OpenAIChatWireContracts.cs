@@ -345,6 +345,7 @@ public sealed record OpenAIChatStreamChunkWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
+[JsonConverter(typeof(OpenAIChatStreamChoiceWireJsonConverter))]
 public sealed record OpenAIChatStreamChoiceWire
 {
     [JsonPropertyName("index")]

@@ -3,6 +3,44 @@ using System.Text.Json.Serialization;
 
 namespace AIUsage.Core.Proxy.Protocols.OpenAIChat;
 
+internal static class OpenAIChatJsonElementReader
+{
+    internal static JsonElement ReadRequiredObject(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException("OpenAI wire value is missing a required object.");
+        }
+
+        return value;
+    }
+
+    internal static string ReadRequiredString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.String)
+        {
+            throw new JsonException("OpenAI wire value is missing a required string.");
+        }
+
+        return value.GetString() ?? throw new JsonException("OpenAI wire value contains an invalid string.");
+    }
+
+    internal static string? ReadOptionalString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw new JsonException("OpenAI wire value contains an invalid optional string.");
+        }
+
+        return value.GetString();
+    }
+}
+
 internal sealed class OpenAIChatUsageWireJsonConverter : JsonConverter<OpenAIChatUsageWire>
 {
     private static readonly HashSet<string> KnownProperties =
@@ -131,6 +169,77 @@ internal sealed class OpenAIChatUsageWireJsonConverter : JsonConverter<OpenAICha
             property.Value.WriteTo(writer);
         }
     }
+}
+
+internal sealed class OpenAIChatStreamChoiceWireJsonConverter : JsonConverter<OpenAIChatStreamChoiceWire>
+{
+    private static readonly HashSet<string> KnownProperties =
+    [
+        "index", "delta", "finish_reason", "usage",
+    ];
+
+    public override OpenAIChatStreamChoiceWire Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException("OpenAI stream choice must be a JSON object.");
+        }
+
+        var root = document.RootElement;
+        var delta = OpenAIChatJsonElementReader.ReadRequiredObject(root, "delta");
+        return new OpenAIChatStreamChoiceWire
+        {
+            Index = ReadRequiredInt64(root, "index"),
+            Delta = WireJson.Deserialize<OpenAIChatDeltaWire>(delta, options),
+            FinishReason = OpenAIChatJsonElementReader.ReadOptionalString(root, "finish_reason"),
+            Usage = OpenAIChatUsageWireJsonConverter.ReadOptionalObject<OpenAIChatUsageWire>(
+                root,
+                "usage",
+                options),
+            AdditionalProperties = OpenAIChatUsageWireJsonConverter.ReadExtensionData(root, KnownProperties),
+        };
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        OpenAIChatStreamChoiceWire value,
+        JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("index", value.Index);
+        writer.WritePropertyName("delta");
+        JsonSerializer.Serialize(writer, value.Delta, options);
+        if (value.FinishReason is not null)
+        {
+            writer.WriteString("finish_reason", value.FinishReason);
+        }
+
+        if (value.Usage is not null)
+        {
+            writer.WritePropertyName("usage");
+            JsonSerializer.Serialize(writer, value.Usage, options);
+        }
+
+        OpenAIChatUsageWireJsonConverter.WriteExtensionData(writer, value.AdditionalProperties);
+        writer.WriteEndObject();
+    }
+
+    private static long ReadRequiredInt64(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt64(out var number))
+        {
+            throw new JsonException("OpenAI stream choice is missing a required integer.");
+        }
+
+        return number;
+    }
+
 }
 
 internal sealed class OpenAIChatStreamChunkWireJsonConverter : JsonConverter<OpenAIChatStreamChunkWire>

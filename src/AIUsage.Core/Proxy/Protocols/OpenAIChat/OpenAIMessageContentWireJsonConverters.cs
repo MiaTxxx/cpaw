@@ -82,7 +82,7 @@ internal sealed class OpenAIContentPartWireJsonConverter : JsonConverter<OpenAIC
             throw new JsonException("OpenAI content part must be an object.");
         }
 
-        var discriminator = ReadRequiredString(root, "type");
+        var discriminator = OpenAIChatJsonElementReader.ReadRequiredString(root, "type");
         return discriminator switch
         {
             "text" => ReadText(root),
@@ -162,19 +162,19 @@ internal sealed class OpenAIContentPartWireJsonConverter : JsonConverter<OpenAIC
     private static OpenAITextContentPartWire ReadText(JsonElement root) =>
         new()
         {
-            Text = ReadRequiredString(root, "text"),
+            Text = OpenAIChatJsonElementReader.ReadRequiredString(root, "text"),
             AdditionalProperties = ReadExtensionData(root, "type", "text"),
         };
 
     private static OpenAIImageUrlContentPartWire ReadImageUrl(JsonElement root)
     {
-        var imageUrl = ReadRequiredObject(root, "image_url");
+        var imageUrl = OpenAIChatJsonElementReader.ReadRequiredObject(root, "image_url");
         return new OpenAIImageUrlContentPartWire
         {
             ImageUrl = new OpenAIImageUrlWire
             {
-                Url = ReadRequiredString(imageUrl, "url"),
-                Detail = ReadOptionalString(imageUrl, "detail"),
+                Url = OpenAIChatJsonElementReader.ReadRequiredString(imageUrl, "url"),
+                Detail = OpenAIChatJsonElementReader.ReadOptionalString(imageUrl, "detail"),
                 AdditionalProperties = ReadExtensionData(imageUrl, "url", "detail"),
             },
             AdditionalProperties = ReadExtensionData(root, "type", "image_url"),
@@ -193,8 +193,8 @@ internal sealed class OpenAIContentPartWireJsonConverter : JsonConverter<OpenAIC
 
             file = new OpenAIFileDescriptorWire
             {
-                FileId = ReadOptionalString(nestedFile, "file_id"),
-                Filename = ReadOptionalString(nestedFile, "filename"),
+                FileId = OpenAIChatJsonElementReader.ReadOptionalString(nestedFile, "file_id"),
+                Filename = OpenAIChatJsonElementReader.ReadOptionalString(nestedFile, "filename"),
                 AdditionalProperties = ReadExtensionData(nestedFile, "file_id", "filename"),
             };
         }
@@ -202,8 +202,8 @@ internal sealed class OpenAIContentPartWireJsonConverter : JsonConverter<OpenAIC
         {
             file = new OpenAIFileDescriptorWire
             {
-                FileId = ReadOptionalString(root, "file_id"),
-                Filename = ReadOptionalString(root, "filename"),
+                FileId = OpenAIChatJsonElementReader.ReadOptionalString(root, "file_id"),
+                Filename = OpenAIChatJsonElementReader.ReadOptionalString(root, "filename"),
             };
         }
 
@@ -212,41 +212,6 @@ internal sealed class OpenAIContentPartWireJsonConverter : JsonConverter<OpenAIC
             File = file,
             AdditionalProperties = ReadExtensionData(root, "type", "file", "file_id", "filename"),
         };
-    }
-
-    private static JsonElement ReadRequiredObject(JsonElement root, string propertyName)
-    {
-        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Object)
-        {
-            throw new JsonException("OpenAI content part is missing a required object.");
-        }
-
-        return value;
-    }
-
-    private static string ReadRequiredString(JsonElement root, string propertyName)
-    {
-        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.String)
-        {
-            throw new JsonException("OpenAI content part is missing a required string.");
-        }
-
-        return value.GetString() ?? throw new JsonException("OpenAI content part contains an invalid string.");
-    }
-
-    private static string? ReadOptionalString(JsonElement root, string propertyName)
-    {
-        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind == JsonValueKind.Null)
-        {
-            return null;
-        }
-
-        if (value.ValueKind != JsonValueKind.String)
-        {
-            throw new JsonException("OpenAI content part contains an invalid optional string.");
-        }
-
-        return value.GetString();
     }
 
     private static Dictionary<string, JsonElement>? ReadExtensionData(
