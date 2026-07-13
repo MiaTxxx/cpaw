@@ -355,6 +355,12 @@
       "sha256" : "bbf2f5625585628bd16fe7eb1eff66e7d152fabc743c9c8b9285ff8d9eaa7c55"
     },
     {
+      "id" : "contracts/proxy/opencode/chat-response-malformed-choice-rejected",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/chat-response-malformed-choice-rejected.json",
+      "sha256" : "545f45aed31109b8c8bf27e8aa468d507a211de1b1cdfb953fddd066bac411b8"
+    },
+    {
       "id" : "contracts/proxy/opencode/chat-response-malformed-usage",
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/chat-response-malformed-usage.json",
@@ -373,10 +379,52 @@
       "sha256" : "19792f056c21dfe717d6e790559d9ac30ecc545bf3c6b09842f89ee3c5ccfa01"
     },
     {
+      "id" : "contracts/proxy/opencode/error-missing-body",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/error-missing-body.json",
+      "sha256" : "41e38977427e62f0fb177e746d471af5ff485379a370aceab2823510fe8a2e74"
+    },
+    {
+      "id" : "contracts/proxy/opencode/error-missing-message",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/error-missing-message.json",
+      "sha256" : "31891c42a3ed626972446642cbd401a2a30bde3fc5e33f7d1a4d1e9993d9012e"
+    },
+    {
+      "id" : "contracts/proxy/opencode/error-null-body",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/error-null-body.json",
+      "sha256" : "a5f30c07b673516c4b632d5c5bdfc247f3e36f5b430f368c05aefb9d5a4aa29b"
+    },
+    {
+      "id" : "contracts/proxy/opencode/error-null-message",
+      "kind" : "json-decode-failure",
+      "path" : "contracts/proxy/opencode/error-null-message.json",
+      "sha256" : "801e8da844397a443ec498307c0a6fea5d06e144b31e0f82380e1fbafe13b8ee"
+    },
+    {
       "id" : "contracts/proxy/opencode/sse-lifecycle",
       "kind" : "json-transform",
       "path" : "contracts/proxy/opencode/sse-lifecycle.json",
       "sha256" : "e9d7b3ae1fee453fe19d18629ca9690c48cfefeb45a1eb000a1673e0af8222cf"
+    },
+    {
+      "id" : "contracts/proxy/opencode/stream-choice-malformed-usage-ignored",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/stream-choice-malformed-usage-ignored.json",
+      "sha256" : "28525a550bd342fdd11e75de2dfd20ae958d27850e25adc37fe0fdb255a5c95d"
+    },
+    {
+      "id" : "contracts/proxy/opencode/stream-choice-usage",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/stream-choice-usage.json",
+      "sha256" : "c0343ca523a4edc120eccb6be372257e8c150620094a27dced8a9e480a55d9dd"
+    },
+    {
+      "id" : "contracts/proxy/opencode/stream-malformed-choice-dropped",
+      "kind" : "json-transform",
+      "path" : "contracts/proxy/opencode/stream-malformed-choice-dropped.json",
+      "sha256" : "015320d73ec96082f2856a44eaed0d521efb0c0bbe9830cc864f725821304b38"
     },
     {
       "id" : "contracts/proxy/opencode/stream-tool-delta",

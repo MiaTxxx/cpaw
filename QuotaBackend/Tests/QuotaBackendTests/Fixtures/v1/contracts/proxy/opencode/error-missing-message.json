@@ -1,0 +1,1 @@
+{"clock":"2030-01-02T03:04:05Z","comparison":{"mode":"json-semantic","orderedArrays":true},"expected":{"accepted":false},"id":"contracts/proxy/opencode/error-missing-message","input":{"error":{}},"kind":"json-decode-failure","schemaVersion":1,"source":{"file":"ContractsGoldenExporterTests.swift","test":"ContractsGoldenExporterTests.testCatalogEncodesDeterministically"}}
