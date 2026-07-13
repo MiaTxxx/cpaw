@@ -231,6 +231,29 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let openAIChatMalformedUsageJSON = #"""
+    {
+      "id": "chatcmpl_fixture_malformed_usage",
+      "object": "chat.completion",
+      "created": 1893553445,
+      "model": "gpt-fixture-chat",
+      "choices": [],
+      "usage": {
+        "prompt_tokens": "not-a-number",
+        "completion_tokens": null
+      }
+    }
+    """#
+
+    static let openAIChatUsageOnlyStreamChunkJSON = #"""
+    {
+      "usage": {
+        "prompt_tokens": null,
+        "completion_tokens": 16
+      }
+    }
+    """#
+
     static let codexResponsesRequestJSON = #"""
     {
       "model": "gpt-fixture-codex",

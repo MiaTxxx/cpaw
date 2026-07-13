@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 15)
+        XCTAssertEqual(cases.count, 17)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -163,6 +163,18 @@ private enum ContractsV1GoldenCatalog {
                 id: "contracts/proxy/opencode/stream-tool-delta",
                 path: "contracts/proxy/opencode/stream-tool-delta.json",
                 value: openAIChatStreamChunk
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/chat-response-malformed-usage",
+                path: "contracts/proxy/opencode/chat-response-malformed-usage.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatMalformedUsageJSON,
+                as: OpenAIChatCompletionResponse.self
+            ),
+            .decodeTransform(
+                id: "contracts/proxy/opencode/stream-usage-only",
+                path: "contracts/proxy/opencode/stream-usage-only.json",
+                inputJSON: ContractsProxyGoldenInputs.openAIChatUsageOnlyStreamChunkJSON,
+                as: OpenAIStreamChunk.self
             ),
         ]
     }
@@ -368,31 +380,67 @@ private struct GoldenFixtureCase {
             let decoded = try decoder.decode(Value.self, from: encoded)
             let reencoded = try encoder.encode(decoded)
 
-            let input = try JSONSerialization.jsonObject(with: encoded)
-            let expected = try JSONSerialization.jsonObject(with: reencoded)
-            let envelope: [String: Any] = [
-                "schemaVersion": 1,
-                "id": id,
-                "source": [
-                    "file": "ContractsGoldenExporterTests.swift",
-                    "test": sourceTest,
-                ],
-                "kind": "json-transform",
-                "clock": "2030-01-02T03:04:05Z",
-                "input": input,
-                "expected": expected,
-                "comparison": [
-                    "mode": "json-semantic",
-                    "orderedArrays": true,
-                ],
-            ]
-            var data = try JSONSerialization.data(
-                withJSONObject: envelope,
-                options: [.sortedKeys, .withoutEscapingSlashes]
+            return try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: encoded,
+                expectedData: reencoded
             )
-            data.append(0x0A)
-            return data
         }
+    }
+
+    static func decodeTransform<Value: Codable>(
+        id: String,
+        path: String,
+        inputJSON: String,
+        as type: Value.Type,
+        sourceTest: String = "ContractsGoldenExporterTests.testCatalogEncodesDeterministically"
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
+            let inputData = Data(inputJSON.utf8)
+            let decoded = try JSONDecoder().decode(type, from: inputData)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+            let expectedData = try encoder.encode(decoded)
+            return try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: inputData,
+                expectedData: expectedData
+            )
+        }
+    }
+
+    private static func renderEnvelope(
+        id: String,
+        sourceTest: String,
+        inputData: Data,
+        expectedData: Data
+    ) throws -> Data {
+        let input = try JSONSerialization.jsonObject(with: inputData)
+        let expected = try JSONSerialization.jsonObject(with: expectedData)
+        let envelope: [String: Any] = [
+            "schemaVersion": 1,
+            "id": id,
+            "source": [
+                "file": "ContractsGoldenExporterTests.swift",
+                "test": sourceTest,
+            ],
+            "kind": "json-transform",
+            "clock": "2030-01-02T03:04:05Z",
+            "input": input,
+            "expected": expected,
+            "comparison": [
+                "mode": "json-semantic",
+                "orderedArrays": true,
+            ],
+        ]
+        var data = try JSONSerialization.data(
+            withJSONObject: envelope,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        )
+        data.append(0x0A)
+        return data
     }
 }
 
