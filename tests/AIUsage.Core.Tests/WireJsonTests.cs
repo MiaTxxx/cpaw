@@ -45,6 +45,26 @@ public sealed class WireJsonTests
         });
     }
 
+    [Fact]
+    public async Task Concurrent_deserialization_is_safe_during_nullability_metadata_initialization()
+    {
+        using var start = new ManualResetEventSlim(false);
+        var tasks = Enumerable.Range(0, 16)
+            .Select(_ => Task.Run(() =>
+            {
+                start.Wait();
+                for (var iteration = 0; iteration < 20; iteration++)
+                {
+                    var request = WireJson.Deserialize<ClaudeMessageRequestWire>(ValidClaudeRequest);
+                    Assert.Equal("claude-fixture", request.Model);
+                }
+            }))
+            .ToArray();
+
+        start.Set();
+        await Task.WhenAll(tasks);
+    }
+
     [Theory]
     [InlineData("null")]
     [InlineData("{\"model\":null,\"messages\":[],\"max_tokens\":1}")]

@@ -11,6 +11,7 @@ public static class WireJson
     private static readonly Assembly WireAssembly = typeof(WireJson).Assembly;
     private static readonly JsonSerializerOptions SerializerOptions = new();
     private static readonly NullabilityInfoContext Nullability = new();
+    private static readonly object NullabilityGate = new();
 
     public static T Deserialize<T>(string json) =>
         (T)Deserialize(json, typeof(T));
@@ -185,7 +186,7 @@ public static class WireJson
                 continue;
             }
 
-            var propertyNullability = Nullability.Create(property);
+            var propertyNullability = GetNullability(property);
             ValidateValue(
                 property.GetValue(value),
                 property.PropertyType,
@@ -205,6 +206,14 @@ public static class WireJson
         }
 
         return nullability?.ReadState == NullabilityState.NotNull;
+    }
+
+    private static NullabilityInfo GetNullability(PropertyInfo property)
+    {
+        lock (NullabilityGate)
+        {
+            return Nullability.Create(property);
+        }
     }
 
     private static Type? GetEnumerableElementType(Type type)
