@@ -7,12 +7,20 @@ internal static class ProviderCostFactsParser
     internal static ProviderCostSummary ParseClaude(RawUsageSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return Parse(snapshot, overallRangeLabel: "Overall");
+        return Parse(snapshot, overallRangeLabel: "Overall", includeUnpricedModels: true);
+    }
+
+    internal static ProviderCostSummary ParseOpenCode(RawUsageSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        var overallRangeLabel = ReadString(snapshot.Facts, "overall.rangeLabel") ?? "Overall";
+        return Parse(snapshot, overallRangeLabel, includeUnpricedModels: false);
     }
 
     private static ProviderCostSummary Parse(
         RawUsageSnapshot snapshot,
-        string overallRangeLabel)
+        string overallRangeLabel,
+        bool includeUnpricedModels)
     {
         var facts = snapshot.Facts;
         return ProviderCostSummary.Create(
@@ -29,7 +37,9 @@ internal static class ProviderCostFactsParser
             ReadModelCosts(facts, "currentWeek.models"),
             ReadModelCosts(facts, "overall.models"),
             ReadModelTimelines(facts, "timeline.byModel"),
-            ReadStringArray(facts, "overall.unpricedModels"));
+            includeUnpricedModels
+                ? ReadStringArray(facts, "overall.unpricedModels")
+                : null);
     }
 
     private static ProviderCostPeriod ReadPeriod(
