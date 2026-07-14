@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 103)
+        XCTAssertEqual(cases.count, 104)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -256,6 +256,13 @@ private enum ContractsV1GoldenCatalog {
         )
 
         return [
+            .throwingBehaviorTransform(
+                id: "canonical/bridge/claude-to-openai-chat/rich-tool-loop",
+                path: "canonical/bridge/claude-to-openai-chat/rich-tool-loop.json",
+                input: CanonicalBridgeGoldenScenarios.claudeToOpenAIChatRichToolLoop,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalChatBuilderMatchesClaudeDirectConverter",
+                transform: CanonicalBridgeGoldenScenarios.buildOpenAIChat
+            ),
             .throwingBehaviorTransform(
                 id: "canonical/request/claude/rich-tool-loop",
                 path: "canonical/request/claude/rich-tool-loop.json",
@@ -1714,6 +1721,129 @@ private enum CanonicalRequestGoldenScenarios {
         case .server: return "server"
         case .hosted: return "hosted"
         case .unknown(let raw): return raw
+        }
+    }
+}
+
+private enum CanonicalBridgeGoldenScenarios {
+    static let claudeToOpenAIChatRichToolLoop = ClaudeMessageRequest(
+        model: "claude-sonnet-4-5",
+        messages: [
+            ClaudeMessage(role: "user", content: .blocks([
+                .text(ClaudeTextBlock(text: "Summarize this file")),
+                .document(ClaudeDocumentBlock(
+                    source: [
+                        "type": AnyCodable("file"),
+                        "file_id": AnyCodable("file_123"),
+                    ],
+                    title: "report.pdf"
+                )),
+            ])),
+            ClaudeMessage(role: "assistant", content: .blocks([
+                .text(ClaudeTextBlock(text: "Let me inspect that")),
+                .toolUse(ClaudeToolUseBlock(
+                    id: "toolu_123",
+                    name: "lookup",
+                    input: ["topic": AnyCodable("quota")]
+                )),
+            ])),
+            ClaudeMessage(role: "user", content: .blocks([
+                .toolResult(ClaudeToolResultBlock(
+                    toolUseId: "toolu_123",
+                    contentBlocks: [
+                        .text(ClaudeTextBlock(text: "Here is the chart")),
+                        .image(ClaudeImageBlock(source: ClaudeImageSource(
+                            type: "base64",
+                            mediaType: "image/png",
+                            data: "AAAA"
+                        ))),
+                    ]
+                )),
+            ])),
+        ],
+        system: "You are precise.",
+        maxTokens: 1024,
+        stream: true,
+        tools: [
+            ClaudeTool(
+                name: "lookup",
+                description: "Lookup docs",
+                inputSchema: ["type": AnyCodable("object")]
+            ),
+        ],
+        toolChoice: ClaudeToolChoice(
+            type: "tool",
+            name: "lookup",
+            disableParallelToolUse: true
+        )
+    )
+
+    static func buildOpenAIChat(_ request: ClaudeMessageRequest) throws -> AnyCodable {
+        let canonical = try CanonicalRequestMapper().mapClaude(request)
+        let built = try CanonicalOpenAIRequestBuilder().buildChatCompletionRequest(
+            from: canonical,
+            modelOverride: "gpt-4o-mini"
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let payloadData = try encoder.encode(built.payload)
+        let decodedPayload = try JSONDecoder().decode(AnyCodable.self, from: payloadData)
+        guard var payload = decodedPayload.value as? [String: AnyCodable] else {
+            preconditionFailure("Expected OpenAI chat request object")
+        }
+        payload.removeValue(forKey: "prompt_cache_key")
+
+        return AnyCodable([
+            "payload": AnyCodable(payload),
+            "lossyNotes": AnyCodable(built.lossyNotes.map(project)),
+        ] as [String: AnyCodable])
+    }
+
+    private static func project(_ note: CanonicalLossyNote) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "code": AnyCodable(note.code),
+            "message": AnyCodable(note.message),
+            "severity": AnyCodable(note.severity.value),
+            "rawExtensions": AnyCodable(note.rawExtensions.map(project)),
+        ]
+        value["itemIndex"] = note.itemIndex.map { AnyCodable($0) }
+        value["path"] = note.path.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ extensionValue: CanonicalVendorExtension) -> AnyCodable {
+        AnyCodable([
+            "vendor": AnyCodable(extensionValue.vendor),
+            "key": AnyCodable(extensionValue.key),
+            "value": projectJSONValue(extensionValue.value.value),
+        ] as [String: AnyCodable])
+    }
+
+    private static func projectJSONValue(_ value: Any) -> AnyCodable {
+        switch value {
+        case let wrapped as AnyCodable:
+            return projectJSONValue(wrapped.value)
+        case let dictionary as [String: AnyCodable]:
+            return AnyCodable(dictionary.mapValues { projectJSONValue($0.value) })
+        case let dictionary as [String: Any]:
+            return AnyCodable(dictionary.mapValues(projectJSONValue))
+        case let array as [AnyCodable]:
+            return AnyCodable(array.map { projectJSONValue($0.value) })
+        case let array as [Any]:
+            return AnyCodable(array.map(projectJSONValue))
+        case let boolean as Bool:
+            return AnyCodable(boolean)
+        case let integer as Int:
+            return AnyCodable(integer)
+        case let number as Double:
+            return AnyCodable(number)
+        case let string as String:
+            return AnyCodable(string)
+        case is NSNull:
+            return AnyCodable(NSNull())
+        default:
+            preconditionFailure("Unsupported bridge fixture JSON value: \(type(of: value))")
         }
     }
 }
