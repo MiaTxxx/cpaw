@@ -10,7 +10,8 @@ public static class QuotaWindowNormalizer
     {
         ArgumentNullException.ThrowIfNull(inputs);
 
-        var windows = inputs.Select(NormalizeWindow).ToImmutableArray();
+        var inputCopy = inputs.ToImmutableArray();
+        var windows = inputCopy.Select(NormalizeWindow).ToImmutableArray();
         var remainingPercent = windows
             .Where(window => window.RemainingPercent is not null)
             .Select(window => window.RemainingPercent!.Value)
@@ -20,7 +21,8 @@ public static class QuotaWindowNormalizer
         return new QuotaWindowNormalization(
             windows,
             remainingPercent,
-            ResolveState(remainingPercent));
+            ResolveState(remainingPercent),
+            inputCopy.Select(input => input.Window).ToImmutableArray());
     }
 
     private static NormalizedQuotaWindow NormalizeWindow(QuotaWindowNormalizationInput input)

@@ -64,11 +64,13 @@ public sealed record QuotaWindowNormalization
     internal QuotaWindowNormalization(
         ImmutableArray<NormalizedQuotaWindow> windows,
         double? remainingPercent,
-        QuotaWindowState state)
+        QuotaWindowState state,
+        ImmutableArray<RawQuotaWindow> sourceWindows)
     {
         Windows = windows;
         RemainingPercent = remainingPercent;
         State = state;
+        SourceWindows = sourceWindows;
     }
 
     public ImmutableArray<NormalizedQuotaWindow> Windows { get; }
@@ -76,6 +78,16 @@ public sealed record QuotaWindowNormalization
     public double? RemainingPercent { get; }
 
     public QuotaWindowState State { get; }
+
+    private ImmutableArray<RawQuotaWindow> SourceWindows { get; }
+
+    internal bool IsDerivedFrom(RawUsageSnapshot rawSnapshot)
+    {
+        ArgumentNullException.ThrowIfNull(rawSnapshot);
+        return SourceWindows.All(sourceWindow =>
+            rawSnapshot.QuotaWindows.Any(snapshotWindow =>
+                ReferenceEquals(snapshotWindow, sourceWindow)));
+    }
 }
 
 public enum QuotaWindowInterpretation
