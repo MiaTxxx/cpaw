@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 97)
+        XCTAssertEqual(cases.count, 100)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -397,6 +397,27 @@ private enum ContractsV1GoldenCatalog {
                 input: CodexUsageNormalizerGoldenScenarios.secondaryResetFallback,
                 sourceTest: "UsageNormalizerTests.testCodexNormalizationFallsBackToSecondaryResetAndIgnoresTertiary",
                 transform: CodexUsageNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/opencode/model-breakdowns",
+                path: "normalization/provider/opencode/model-breakdowns.json",
+                input: OpenCodeCostNormalizerGoldenScenarios.modelBreakdowns,
+                sourceTest: "UsageNormalizerTests.testOpenCodeCostNormalizationPreservesModelBreakdownsAndNumericConversions",
+                transform: OpenCodeCostNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/opencode/periods-account-range",
+                path: "normalization/provider/opencode/periods-account-range.json",
+                input: OpenCodeCostNormalizerGoldenScenarios.periodsAccountRange,
+                sourceTest: "UsageNormalizerTests.testOpenCodeCostNormalizationPreservesPeriodsAndOverallRangeWhileIgnoringAccountAndUnpriced",
+                transform: OpenCodeCostNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/opencode/timelines-defaults",
+                path: "normalization/provider/opencode/timelines-defaults.json",
+                input: OpenCodeCostNormalizerGoldenScenarios.timelinesDefaults,
+                sourceTest: "UsageNormalizerTests.testOpenCodeCostNormalizationFiltersTimelinesAndDefaultsMalformedValues",
+                transform: OpenCodeCostNormalizerGoldenScenarios.normalize
             ),
             .behaviorTransform(
                 id: "normalization/quota/entitlement-missing-values",

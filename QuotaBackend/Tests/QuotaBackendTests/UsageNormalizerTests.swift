@@ -185,6 +185,88 @@ final class UsageNormalizerTests: XCTestCase {
         XCTAssertNil(output.unpricedModels)
     }
 
+    func testOpenCodeCostNormalizationPreservesPeriodsAndOverallRangeWhileIgnoringAccountAndUnpriced() throws {
+        let output = OpenCodeCostNormalizerGoldenScenarios.normalize(
+            OpenCodeCostNormalizerGoldenScenarios.periodsAccountRange
+        )
+        let cost = try XCTUnwrap(output.costSummary)
+
+        XCTAssertNil(output.accountLabel)
+        XCTAssertEqual(output.category, "local-cost")
+        XCTAssertEqual(cost.today?.usd, 1)
+        XCTAssertEqual(cost.today?.tokens, 4_294_967_296)
+        XCTAssertEqual(cost.today?.rangeLabel, "2030-01-02")
+        XCTAssertEqual(cost.week?.usd, 2.5)
+        XCTAssertEqual(cost.week?.tokens, 42)
+        XCTAssertEqual(cost.week?.rangeLabel, "2029-12-31..2030-01-06")
+        XCTAssertEqual(cost.month?.usd, 3)
+        XCTAssertEqual(cost.month?.tokens, 300)
+        XCTAssertEqual(cost.month?.rangeLabel, "2030-01")
+        XCTAssertEqual(cost.overall?.usd, 4.125)
+        XCTAssertEqual(cost.overall?.tokens, 4_294_967_300)
+        XCTAssertEqual(cost.overall?.rangeLabel, "2029-12-31..2030-01-02")
+        XCTAssertEqual(cost.timeline?.hourly.count, 0)
+        XCTAssertEqual(cost.timeline?.daily.count, 0)
+        XCTAssertNil(output.unpricedModels)
+    }
+
+    func testOpenCodeCostNormalizationPreservesModelBreakdownsAndNumericConversions() throws {
+        let output = OpenCodeCostNormalizerGoldenScenarios.normalize(
+            OpenCodeCostNormalizerGoldenScenarios.modelBreakdowns
+        )
+        let cost = try XCTUnwrap(output.costSummary)
+        let month = try XCTUnwrap(cost.modelBreakdown)
+        let today = try XCTUnwrap(cost.modelBreakdownToday)
+        let overall = try XCTUnwrap(cost.modelBreakdownOverall)
+
+        XCTAssertNil(output.accountLabel)
+        XCTAssertEqual(month.map(\.model), ["opencode-beta", "opencode-alpha"])
+        XCTAssertEqual(month[0].totalTokens, 8)
+        XCTAssertEqual(month[0].cacheReadTokens, 2)
+        XCTAssertEqual(month[0].inputTokens, 0)
+        XCTAssertEqual(month[1].totalTokens, 4_294_967_296)
+        XCTAssertEqual(month[1].inputTokens, 3_000_000_000)
+        XCTAssertEqual(month[1].cacheReadTokens, 0)
+        XCTAssertEqual(today.map(\.model), ["opencode-today"])
+        XCTAssertEqual(today[0].totalTokens, 0)
+        XCTAssertNil(cost.modelBreakdownWeek)
+        XCTAssertEqual(overall.map(\.model), ["opencode-overall"])
+        XCTAssertEqual(overall[0].totalTokens, 4_294_967_300)
+        XCTAssertEqual(overall[0].estimatedCostUsd, 4.125)
+        XCTAssertNil(output.unpricedModels)
+    }
+
+    func testOpenCodeCostNormalizationFiltersTimelinesAndDefaultsMalformedValues() throws {
+        let output = OpenCodeCostNormalizerGoldenScenarios.normalize(
+            OpenCodeCostNormalizerGoldenScenarios.timelinesDefaults
+        )
+        let cost = try XCTUnwrap(output.costSummary)
+        let timeline = try XCTUnwrap(cost.timeline)
+        let modelTimelines = try XCTUnwrap(cost.modelTimelines)
+
+        XCTAssertNil(output.accountLabel)
+        XCTAssertEqual(cost.today?.usd, 0)
+        XCTAssertEqual(cost.today?.tokens, 0)
+        XCTAssertEqual(cost.today?.rangeLabel, "Today")
+        XCTAssertEqual(cost.week?.rangeLabel, "This week")
+        XCTAssertEqual(cost.month?.rangeLabel, "This month")
+        XCTAssertEqual(cost.overall?.rangeLabel, "Overall")
+        XCTAssertEqual(timeline.hourly.count, 1)
+        XCTAssertEqual(timeline.hourly[0].tokens, 4_294_967_296)
+        XCTAssertEqual(timeline.hourly[0].inputTokens, 1)
+        XCTAssertEqual(timeline.hourly[0].outputTokens, 2)
+        XCTAssertEqual(timeline.daily.count, 1)
+        XCTAssertEqual(timeline.daily[0].bucket, "2030-01-02")
+        XCTAssertEqual(modelTimelines.map(\.model), ["opencode-alpha", "opencode-beta"])
+        XCTAssertEqual(modelTimelines[0].daily[0].tokens, 125)
+        XCTAssertEqual(modelTimelines[1].hourly[0].tokens, 75)
+        XCTAssertNil(cost.modelBreakdown)
+        XCTAssertNil(cost.modelBreakdownToday)
+        XCTAssertNil(cost.modelBreakdownWeek)
+        XCTAssertNil(cost.modelBreakdownOverall)
+        XCTAssertNil(output.unpricedModels)
+    }
+
     func testPercentWindowDerivesUsedPercentFromRemaining() {
         let output = UsageNormalizerGoldenScenarios.createPercentWindow(
             UsageNormalizerGoldenScenarios.percentDerived
