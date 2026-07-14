@@ -7,6 +7,12 @@
       "sha256" : "b3bd674afd36a5f645887007bb3e5871b1a965c88f9f152928e40787bfcb1208"
     },
     {
+      "id" : "canonical/request/claude/empty-defaults",
+      "kind" : "json-transform",
+      "path" : "canonical/request/claude/empty-defaults.json",
+      "sha256" : "d9142d33ad5ea59606a11288473c731aa2404a8ecf46d04bd241fb6be09488c0"
+    },
+    {
       "id" : "canonical/request/claude/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/request/claude/rich-tool-loop.json",
