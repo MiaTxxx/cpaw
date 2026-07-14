@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 102)
+        XCTAssertEqual(cases.count, 103)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -267,6 +267,13 @@ private enum ContractsV1GoldenCatalog {
                 id: "canonical/request/claude/content-variants",
                 path: "canonical/request/claude/content-variants.json",
                 input: CanonicalRequestGoldenScenarios.claudeContentVariants,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapClaude
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/request/claude/empty-defaults",
+                path: "canonical/request/claude/empty-defaults.json",
+                input: CanonicalRequestGoldenScenarios.claudeEmptyDefaults,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapClaude
             ),
@@ -1332,6 +1339,31 @@ private enum CanonicalRequestGoldenScenarios {
         ],
         maxTokens: 512,
         stream: false
+    )
+
+    static let claudeEmptyDefaults = ClaudeMessageRequest(
+        model: "claude-fixture-empty-defaults",
+        messages: [
+            ClaudeMessage(role: "user", content: .text("Plain fixture text")),
+            ClaudeMessage(role: "user", content: .blocks([
+                .toolResult(ClaudeToolResultBlock(
+                    toolUseId: "toolu_empty_blocks",
+                    contentBlocks: []
+                )),
+            ])),
+            ClaudeMessage(role: "user", content: .blocks([
+                .toolResult(ClaudeToolResultBlock(
+                    toolUseId: "toolu_missing_content",
+                    content: nil
+                )),
+            ])),
+        ],
+        system: "",
+        maxTokens: 1,
+        toolChoice: ClaudeToolChoice(
+            type: "auto",
+            disableParallelToolUse: false
+        )
     )
 
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
