@@ -499,6 +499,24 @@
       "sha256" : "08498e4bb7bafc00e5c0aab2aa0b7fd2a6548e06c05d24836d252b022d067911"
     },
     {
+      "id" : "normalization/provider/claude/model-breakdowns",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/claude/model-breakdowns.json",
+      "sha256" : "60757455984e9c4a60a94d9f8c69160317a737fcac072d54cf981d9b6deced63"
+    },
+    {
+      "id" : "normalization/provider/claude/periods-account-unpriced",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/claude/periods-account-unpriced.json",
+      "sha256" : "ccb06e2db3b4efa43304773145e1f7af7e22b6c1f39f618411284e71d6892620"
+    },
+    {
+      "id" : "normalization/provider/claude/timelines-defaults",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/claude/timelines-defaults.json",
+      "sha256" : "65177937c3c4cec53b69e4105078f924f460b624db9d7fabb4567188b11e69e9"
+    },
+    {
       "id" : "normalization/provider/codex/all-windows-order",
       "kind" : "json-transform",
       "path" : "normalization/provider/codex/all-windows-order.json",
