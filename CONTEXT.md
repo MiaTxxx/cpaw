@@ -36,6 +36,14 @@ _Avoid_: Normalized quota window
 A comparable quota window derived from a Raw Quota Window for use in a Provider Usage Summary.
 _Avoid_: Raw quota window
 
+**Quota Window Interpretation**:
+The meaning assigned to a Raw Quota Window when deriving a Normalized Quota Window: percent, entitlement, or generic quota.
+_Avoid_: Window kind, provider mode
+
+**Quota Window State**:
+The attention state derived from the tightest known remaining percentage across a set of Normalized Quota Windows; no known percentage is active rather than depleted.
+_Avoid_: Provider status, raw status
+
 **Provider Usage Summary**:
 A normalized snapshot for one provider account at one observation time; it is not historical accumulated usage.
 _Avoid_: Raw usage snapshot, dashboard overview
