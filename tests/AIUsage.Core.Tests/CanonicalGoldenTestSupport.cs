@@ -1,11 +1,20 @@
 using System.Text.Json;
 using AIUsage.Core.Proxy.Canonical;
+using AIUsage.Core.Proxy.Protocols.OpenAIChat;
 using Xunit;
 
 namespace AIUsage.Core.Tests;
 
 internal static class CanonicalGoldenTestSupport
 {
+    internal static JsonElement Project(
+        CanonicalBuildResult<OpenAIChatCompletionRequestWire> result) =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["payload"] = JsonSerializer.SerializeToElement(result.Payload),
+            ["lossyNotes"] = result.LossyNotes.Select(Project).ToArray(),
+        });
+
     internal static JsonElement Project(CanonicalRequest request)
     {
         var value = new Dictionary<string, object?>
@@ -340,6 +349,20 @@ internal static class CanonicalGoldenTestSupport
             ["key"] = extensionValue.Key,
             ["value"] = extensionValue.Value,
         };
+
+    private static Dictionary<string, object?> Project(CanonicalLossyNote note)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["code"] = note.Code,
+            ["message"] = note.Message,
+            ["severity"] = note.Severity.Value,
+            ["rawExtensions"] = note.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "itemIndex", note.ItemIndex);
+        Add(value, "path", note.Path);
+        return value;
+    }
 
     private static Dictionary<string, object?> Project(
         IReadOnlyDictionary<string, JsonElement> values) =>

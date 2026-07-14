@@ -258,3 +258,30 @@ public sealed record CanonicalReasoningItem(
     bool? Redacted,
     ImmutableArray<CanonicalVendorExtension> RawExtensions)
     : CanonicalConversationItem;
+
+public readonly record struct CanonicalLossySeverity
+{
+    private readonly string? _value;
+
+    public CanonicalLossySeverity(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        _value = value;
+    }
+
+    public string Value => _value ?? "warning";
+
+    public static CanonicalLossySeverity Warning { get; } = new("warning");
+}
+
+public sealed record CanonicalLossyNote(
+    string Code,
+    string Message,
+    CanonicalLossySeverity Severity,
+    long? ItemIndex,
+    string? Path,
+    ImmutableArray<CanonicalVendorExtension> RawExtensions);
+
+public sealed record CanonicalBuildResult<TPayload>(
+    TPayload Payload,
+    ImmutableArray<CanonicalLossyNote> LossyNotes);
