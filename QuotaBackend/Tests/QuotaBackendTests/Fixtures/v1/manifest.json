@@ -1,6 +1,12 @@
 {
   "cases" : [
     {
+      "id" : "canonical/request/claude/rich-tool-loop",
+      "kind" : "json-transform",
+      "path" : "canonical/request/claude/rich-tool-loop.json",
+      "sha256" : "44688eb93ea370b5968601d8329644d8cb756d61c5c5c823a1c5c4e09646015f"
+    },
+    {
       "id" : "contracts/account/account-credential-all-fields",
       "kind" : "json-transform",
       "path" : "contracts/account/account-credential-all-fields.json",
