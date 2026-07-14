@@ -535,6 +535,24 @@
       "sha256" : "506b431c693078e25385aac473052ee06517d73da4ac2fdc9495d01936d532ca"
     },
     {
+      "id" : "normalization/provider/opencode/model-breakdowns",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/opencode/model-breakdowns.json",
+      "sha256" : "9ee6f111f5d207265b1ded3b1769283ff890830f36d4d07930bc8cfcfbc5436c"
+    },
+    {
+      "id" : "normalization/provider/opencode/periods-account-range",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/opencode/periods-account-range.json",
+      "sha256" : "0033f15b7a7dbe1595c502c7eeea0d02a78489e0dbc41e1571bd1b60090e00b9"
+    },
+    {
+      "id" : "normalization/provider/opencode/timelines-defaults",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/opencode/timelines-defaults.json",
+      "sha256" : "2d5e737aee3fa89af9f81f4a0423caee0e7df5881754be800386ad4cbd54e434"
+    },
+    {
       "id" : "normalization/quota/entitlement-missing-values",
       "kind" : "json-transform",
       "path" : "normalization/quota/entitlement-missing-values.json",
