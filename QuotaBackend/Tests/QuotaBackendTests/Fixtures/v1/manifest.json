@@ -1,6 +1,12 @@
 {
   "cases" : [
     {
+      "id" : "canonical/request/claude/content-variants",
+      "kind" : "json-transform",
+      "path" : "canonical/request/claude/content-variants.json",
+      "sha256" : "b3bd674afd36a5f645887007bb3e5871b1a965c88f9f152928e40787bfcb1208"
+    },
+    {
       "id" : "canonical/request/claude/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/request/claude/rich-tool-loop.json",
