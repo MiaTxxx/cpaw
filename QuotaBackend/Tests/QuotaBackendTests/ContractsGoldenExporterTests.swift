@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 94)
+        XCTAssertEqual(cases.count, 97)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -355,6 +355,27 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/provider/provider-usage-null-source-root.json",
                 inputJSON: #"{"provider":"fixture-roots","label":"Roots Fixture","fetchedAt":"2030-01-02T03:04:05Z","source":{"mode":"local","type":"authFile","roots":["/fixture/root",null]},"extra":{}}"#,
                 as: ProviderUsage.self
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/claude/model-breakdowns",
+                path: "normalization/provider/claude/model-breakdowns.json",
+                input: ClaudeCostNormalizerGoldenScenarios.modelBreakdowns,
+                sourceTest: "UsageNormalizerTests.testClaudeCostNormalizationPreservesAllModelBreakdownsAndNumericConversions",
+                transform: ClaudeCostNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/claude/periods-account-unpriced",
+                path: "normalization/provider/claude/periods-account-unpriced.json",
+                input: ClaudeCostNormalizerGoldenScenarios.periodsAccountUnpriced,
+                sourceTest: "UsageNormalizerTests.testClaudeCostNormalizationPreservesPeriodsAccountAndUnpricedModels",
+                transform: ClaudeCostNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/claude/timelines-defaults",
+                path: "normalization/provider/claude/timelines-defaults.json",
+                input: ClaudeCostNormalizerGoldenScenarios.timelinesDefaults,
+                sourceTest: "UsageNormalizerTests.testClaudeCostNormalizationFiltersTimelinesAndDefaultsMalformedValues",
+                transform: ClaudeCostNormalizerGoldenScenarios.normalize
             ),
             .behaviorTransform(
                 id: "normalization/provider/codex/all-windows-order",
