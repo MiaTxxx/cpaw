@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 100)
+        XCTAssertEqual(cases.count, 101)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -256,6 +256,13 @@ private enum ContractsV1GoldenCatalog {
         )
 
         return [
+            .throwingBehaviorTransform(
+                id: "canonical/request/claude/rich-tool-loop",
+                path: "canonical/request/claude/rich-tool-loop.json",
+                input: CanonicalRequestGoldenScenarios.claudeRichToolLoop,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeRequestMappingPreservesToolConfigAndRichItems",
+                transform: CanonicalRequestGoldenScenarios.mapClaude
+            ),
             .roundTrip(
                 id: "contracts/account/account-credential-all-fields",
                 path: "contracts/account/account-credential-all-fields.json",
@@ -1176,6 +1183,414 @@ private enum ContractsV1GoldenCatalog {
     }
 }
 
+private enum CanonicalRequestGoldenScenarios {
+    static let claudeRichToolLoop = ClaudeMessageRequest(
+        model: "claude-sonnet-4-5",
+        messages: [
+            ClaudeMessage(role: "user", content: .blocks([
+                .text(ClaudeTextBlock(text: "Read this doc")),
+                .document(ClaudeDocumentBlock(
+                    source: [
+                        "type": AnyCodable("file"),
+                        "file_id": AnyCodable("file_123"),
+                    ],
+                    title: "Spec"
+                )),
+            ])),
+            ClaudeMessage(role: "assistant", content: .blocks([
+                .thinking(ClaudeThinkingBlock(thinking: "Need tool", signature: "sig_1")),
+                .toolUse(ClaudeToolUseBlock(
+                    id: "toolu_1",
+                    name: "lookup",
+                    input: ["query": AnyCodable("quota")]
+                )),
+            ])),
+            ClaudeMessage(role: "user", content: .blocks([
+                .toolResult(ClaudeToolResultBlock(
+                    toolUseId: "toolu_1",
+                    contentBlocks: [
+                        .text(ClaudeTextBlock(text: "Found it")),
+                    ]
+                )),
+            ])),
+        ],
+        systemBlocks: [
+            ClaudeSystemBlock(
+                type: "text",
+                text: "You are precise.",
+                cacheControl: ["type": AnyCodable("ephemeral")]
+            ),
+        ],
+        maxTokens: 2048,
+        stream: true,
+        tools: [
+            ClaudeTool(
+                name: "lookup",
+                description: "Lookup docs",
+                inputSchema: ["type": AnyCodable("object")],
+                eagerInputStreaming: true
+            ),
+        ],
+        toolChoice: ClaudeToolChoice(
+            type: "tool",
+            name: "lookup",
+            disableParallelToolUse: true
+        ),
+        metadata: ClaudeMetadata(userId: "user_123")
+    )
+
+    static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
+        let canonical = try CanonicalRequestMapper().mapClaude(request)
+        return project(canonical)
+    }
+
+    private static func project(_ request: CanonicalRequest) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "modelHint": AnyCodable(request.modelHint),
+            "system": AnyCodable(request.system.map(project)),
+            "items": AnyCodable(request.items.map(project)),
+            "tools": AnyCodable(request.tools.map(project)),
+            "generationConfig": project(request.generationConfig),
+            "metadata": project(request.metadata),
+            "rawExtensions": AnyCodable(request.rawExtensions.map(project)),
+        ]
+        if let toolConfig = request.toolConfig {
+            value["toolConfig"] = project(toolConfig)
+        }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ item: CanonicalConversationItem) -> AnyCodable {
+        switch item {
+        case .message(let message):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("message"),
+                "role": AnyCodable(message.role.value),
+                "parts": AnyCodable(message.parts.map(project)),
+                "metadata": project(message.metadata),
+                "rawExtensions": AnyCodable(message.rawExtensions.map(project)),
+            ]
+            if let phase = message.phase {
+                value["phase"] = AnyCodable(phase.value)
+            }
+            if let name = message.name {
+                value["name"] = AnyCodable(name)
+            }
+            return AnyCodable(value)
+
+        case .toolCall(let toolCall):
+            return AnyCodable([
+                "type": AnyCodable("tool_call"),
+                "id": AnyCodable(toolCall.id),
+                "name": AnyCodable(toolCall.name),
+                "inputJSON": AnyCodable(toolCall.inputJSON),
+                "status": AnyCodable(toolCall.status.value),
+                "partial": AnyCodable(toolCall.partial),
+                "rawExtensions": AnyCodable(toolCall.rawExtensions.map(project)),
+            ] as [String: AnyCodable])
+
+        case .toolResult(let toolResult):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("tool_result"),
+                "toolCallID": AnyCodable(toolResult.toolCallID),
+                "parts": AnyCodable(toolResult.parts.map(project)),
+                "rawExtensions": AnyCodable(toolResult.rawExtensions.map(project)),
+            ]
+            if let isError = toolResult.isError {
+                value["isError"] = AnyCodable(isError)
+            }
+            if let rawTextFallback = toolResult.rawTextFallback {
+                value["rawTextFallback"] = AnyCodable(rawTextFallback)
+            }
+            return AnyCodable(value)
+
+        case .reasoning(let reasoning):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("reasoning"),
+                "rawExtensions": AnyCodable(reasoning.rawExtensions.map(project)),
+            ]
+            value["summaryText"] = reasoning.summaryText.map { AnyCodable($0) }
+            value["fullText"] = reasoning.fullText.map { AnyCodable($0) }
+            value["encryptedContent"] = reasoning.encryptedContent.map { AnyCodable($0) }
+            value["signature"] = reasoning.signature.map { AnyCodable($0) }
+            value["redacted"] = reasoning.redacted.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .compaction(let compaction):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("compaction"),
+                "rawExtensions": AnyCodable(compaction.rawExtensions.map(project)),
+            ]
+            value["id"] = compaction.id.map { AnyCodable($0) }
+            value["encryptedContent"] = compaction.encryptedContent.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .hostedToolEvent(let event):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("hosted_tool_event"),
+                "vendorType": AnyCodable(event.vendorType),
+                "status": AnyCodable(event.status.value),
+                "rawExtensions": AnyCodable(event.rawExtensions.map(project)),
+            ]
+            value["callID"] = event.callID.map { AnyCodable($0) }
+            value["payload"] = event.payload.map(project)
+            return AnyCodable(value)
+        }
+    }
+
+    private static func project(_ part: CanonicalContentPart) -> AnyCodable {
+        switch part {
+        case .text(let text):
+            return AnyCodable([
+                "type": AnyCodable("text"),
+                "text": AnyCodable(text.text),
+                "rawExtensions": AnyCodable(text.rawExtensions.map(project)),
+            ] as [String: AnyCodable])
+
+        case .image(let image):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("image"),
+                "source": AnyCodable(imageSourceValue(image.source)),
+                "data": AnyCodable(image.data),
+                "rawExtensions": AnyCodable(image.rawExtensions.map(project)),
+            ]
+            value["mediaType"] = image.mediaType.map { AnyCodable($0) }
+            value["detail"] = image.detail.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .document(let document):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("document"),
+                "source": project(document.source),
+                "rawExtensions": AnyCodable(document.rawExtensions.map(project)),
+            ]
+            value["title"] = document.title.map { AnyCodable($0) }
+            value["context"] = document.context.map { AnyCodable($0) }
+            value["citations"] = document.citations.map(project)
+            return AnyCodable(value)
+
+        case .fileRef(let file):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("file_ref"),
+                "rawExtensions": AnyCodable(file.rawExtensions.map(project)),
+            ]
+            value["fileID"] = file.fileID.map { AnyCodable($0) }
+            value["filename"] = file.filename.map { AnyCodable($0) }
+            value["mimeType"] = file.mimeType.map { AnyCodable($0) }
+            value["downloadable"] = file.downloadable.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .reasoningText(let reasoning):
+            return AnyCodable([
+                "type": AnyCodable("reasoning_text"),
+                "text": AnyCodable(reasoning.text),
+                "rawExtensions": AnyCodable(reasoning.rawExtensions.map(project)),
+            ] as [String: AnyCodable])
+
+        case .refusal(let refusal):
+            return AnyCodable([
+                "type": AnyCodable("refusal"),
+                "text": AnyCodable(refusal.text),
+                "rawExtensions": AnyCodable(refusal.rawExtensions.map(project)),
+            ] as [String: AnyCodable])
+
+        case .unknown(let unknown):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("unknown"),
+                "vendorType": AnyCodable(unknown.type),
+                "rawExtensions": AnyCodable(unknown.rawExtensions.map(project)),
+            ]
+            value["payload"] = unknown.payload.map(project)
+            return AnyCodable(value)
+        }
+    }
+
+    private static func project(_ source: CanonicalDocumentSource) -> AnyCodable {
+        switch source {
+        case .inlineText(let text):
+            return AnyCodable([
+                "type": AnyCodable("inline_text"),
+                "text": AnyCodable(text),
+            ] as [String: AnyCodable])
+        case .contentParts(let parts):
+            return AnyCodable([
+                "type": AnyCodable("content_parts"),
+                "parts": AnyCodable(parts.map(project)),
+            ] as [String: AnyCodable])
+        case .url(let url):
+            return AnyCodable([
+                "type": AnyCodable("url"),
+                "url": AnyCodable(url),
+            ] as [String: AnyCodable])
+        case .base64(let data, let mediaType):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("base64"),
+                "data": AnyCodable(data),
+            ]
+            value["mediaType"] = mediaType.map { AnyCodable($0) }
+            return AnyCodable(value)
+        case .fileID(let fileID):
+            return AnyCodable([
+                "type": AnyCodable("file_id"),
+                "fileID": AnyCodable(fileID),
+            ] as [String: AnyCodable])
+        case .unknown(let value):
+            return AnyCodable([
+                "type": AnyCodable("unknown"),
+                "value": project(value),
+            ] as [String: AnyCodable])
+        }
+    }
+
+    private static func project(_ tool: CanonicalToolDefinition) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "kind": AnyCodable(toolKindValue(tool.kind)),
+            "execution": AnyCodable(toolExecutionValue(tool.execution)),
+            "flags": project(tool.flags),
+            "rawExtensions": AnyCodable(tool.rawExtensions.map(project)),
+        ]
+        value["name"] = tool.name.map { AnyCodable($0) }
+        value["description"] = tool.description.map { AnyCodable($0) }
+        value["inputSchema"] = tool.inputSchema.map(project)
+        value["vendorType"] = tool.vendorType.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ flags: CanonicalToolDefinitionFlags) -> AnyCodable {
+        var value: [String: AnyCodable] = [:]
+        value["eagerInputStreaming"] = flags.eagerInputStreaming.map { AnyCodable($0) }
+        value["strict"] = flags.strict.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ config: CanonicalToolConfig) -> AnyCodable {
+        var value: [String: AnyCodable] = [:]
+        if let choice = config.choice {
+            value["choice"] = project(choice)
+        }
+        value["parallelCallsAllowed"] = config.parallelCallsAllowed.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ choice: CanonicalToolChoice) -> AnyCodable {
+        switch choice {
+        case .none:
+            return AnyCodable(["type": AnyCodable("none")] as [String: AnyCodable])
+        case .auto:
+            return AnyCodable(["type": AnyCodable("auto")] as [String: AnyCodable])
+        case .required:
+            return AnyCodable(["type": AnyCodable("required")] as [String: AnyCodable])
+        case .specific(let name):
+            return AnyCodable([
+                "type": AnyCodable("specific"),
+                "name": AnyCodable(name),
+            ] as [String: AnyCodable])
+        case .allowed(let names):
+            return AnyCodable([
+                "type": AnyCodable("allowed"),
+                "names": AnyCodable(names.map { AnyCodable($0) }),
+            ] as [String: AnyCodable])
+        case .hosted(let name):
+            return AnyCodable([
+                "type": AnyCodable("hosted"),
+                "name": AnyCodable(name),
+            ] as [String: AnyCodable])
+        case .custom(let name):
+            return AnyCodable([
+                "type": AnyCodable("custom"),
+                "name": AnyCodable(name),
+            ] as [String: AnyCodable])
+        case .unknown(let raw):
+            return AnyCodable([
+                "type": AnyCodable("unknown"),
+                "value": AnyCodable(raw),
+            ] as [String: AnyCodable])
+        }
+    }
+
+    private static func project(_ config: CanonicalGenerationConfig) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "stopSequences": AnyCodable(config.stopSequences.map { AnyCodable($0) }),
+        ]
+        value["maxOutputTokens"] = config.maxOutputTokens.map { AnyCodable($0) }
+        value["temperature"] = config.temperature.map { AnyCodable($0) }
+        value["topP"] = config.topP.map { AnyCodable($0) }
+        value["topK"] = config.topK.map { AnyCodable($0) }
+        value["stream"] = config.stream.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ extensionValue: CanonicalVendorExtension) -> AnyCodable {
+        AnyCodable([
+            "vendor": AnyCodable(extensionValue.vendor),
+            "key": AnyCodable(extensionValue.key),
+            "value": project(extensionValue.value),
+        ] as [String: AnyCodable])
+    }
+
+    private static func project(_ values: CanonicalJSONMap) -> AnyCodable {
+        AnyCodable(values.mapValues(project))
+    }
+
+    private static func project(_ value: AnyCodable) -> AnyCodable {
+        projectJSONValue(value.value)
+    }
+
+    private static func projectJSONValue(_ value: Any) -> AnyCodable {
+        switch value {
+        case let wrapped as AnyCodable:
+            return project(wrapped)
+        case let dictionary as [String: AnyCodable]:
+            return AnyCodable(dictionary.mapValues(project))
+        case let dictionary as [String: Any]:
+            return AnyCodable(dictionary.mapValues(projectJSONValue))
+        case let array as [AnyCodable]:
+            return AnyCodable(array.map(project))
+        case let array as [Any]:
+            return AnyCodable(array.map(projectJSONValue))
+        case let boolean as Bool:
+            return AnyCodable(boolean)
+        case let integer as Int:
+            return AnyCodable(integer)
+        case let number as Double:
+            return AnyCodable(number)
+        case let string as String:
+            return AnyCodable(string)
+        case is NSNull:
+            return AnyCodable(NSNull())
+        default:
+            preconditionFailure("Unsupported canonical fixture JSON value: \(type(of: value))")
+        }
+    }
+
+    private static func imageSourceValue(_ source: CanonicalImageSource) -> String {
+        switch source {
+        case .base64: return "base64"
+        case .url: return "url"
+        case .fileID: return "file_id"
+        case .unknown(let raw): return raw
+        }
+    }
+
+    private static func toolKindValue(_ kind: CanonicalToolDefinitionKind) -> String {
+        switch kind {
+        case .function: return "function"
+        case .hosted: return "hosted"
+        case .custom: return "custom"
+        case .unknown(let raw): return raw
+        }
+    }
+
+    private static func toolExecutionValue(_ execution: CanonicalToolExecution) -> String {
+        switch execution {
+        case .client: return "client"
+        case .server: return "server"
+        case .hosted: return "hosted"
+        case .unknown(let raw): return raw
+        }
+    }
+}
+
 /// Windows UI/daemon RPC exposes account metadata only. The secret-bearing
 /// `credential` field intentionally never crosses that process boundary.
 private struct SafeAccountCredentialMetadataFixture: Codable {
@@ -1282,6 +1697,23 @@ private struct GoldenFixtureCase {
         input: Input,
         sourceTest: String,
         transform: @escaping (Input) -> Expected
+    ) -> GoldenFixtureCase {
+        GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
+            try renderEnvelope(
+                id: id,
+                sourceTest: sourceTest,
+                inputData: try encodeFixtureValue(input),
+                expectedData: try encodeFixtureValue(transform(input))
+            )
+        }
+    }
+
+    static func throwingBehaviorTransform<Input: Encodable, Expected: Encodable>(
+        id: String,
+        path: String,
+        input: Input,
+        sourceTest: String,
+        transform: @escaping (Input) throws -> Expected
     ) -> GoldenFixtureCase {
         GoldenFixtureCase(id: id, path: path, kind: "json-transform") {
             try renderEnvelope(
