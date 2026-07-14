@@ -7,13 +7,15 @@ public sealed record ProviderUsageSummary
         ProviderAccountReference? account,
         ProviderTimestamp observedAt,
         UsageSource? source,
-        QuotaWindowNormalization quota)
+        QuotaWindowNormalization quota,
+        ProviderTimestamp? nextResetAt)
     {
         ProviderId = providerId;
         Account = account;
         ObservedAt = observedAt;
         Source = source;
         Quota = quota;
+        NextResetAt = nextResetAt;
     }
 
     public ProviderId ProviderId { get; }
@@ -26,9 +28,12 @@ public sealed record ProviderUsageSummary
 
     public QuotaWindowNormalization Quota { get; }
 
+    public ProviderTimestamp? NextResetAt { get; }
+
     public static ProviderUsageSummary Create(
         RawUsageSnapshot rawSnapshot,
-        QuotaWindowNormalization quota)
+        QuotaWindowNormalization quota,
+        ProviderTimestamp? nextResetAt = null)
     {
         ArgumentNullException.ThrowIfNull(rawSnapshot);
         ArgumentNullException.ThrowIfNull(quota);
@@ -44,6 +49,7 @@ public sealed record ProviderUsageSummary
             rawSnapshot.Account,
             rawSnapshot.ObservedAt,
             rawSnapshot.Source,
-            quota);
+            quota,
+            nextResetAt);
     }
 }
