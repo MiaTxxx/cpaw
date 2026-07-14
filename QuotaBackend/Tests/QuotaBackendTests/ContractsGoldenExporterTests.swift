@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 104)
+        XCTAssertEqual(cases.count, 105)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -256,6 +256,13 @@ private enum ContractsV1GoldenCatalog {
         )
 
         return [
+            .throwingBehaviorTransform(
+                id: "canonical/bridge/claude-to-openai-chat/document-url-lossy",
+                path: "canonical/bridge/claude-to-openai-chat/document-url-lossy.json",
+                input: CanonicalBridgeGoldenScenarios.claudeToOpenAIChatDocumentURLLossy,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalBuilderRecordsLossyDocumentDowngrade",
+                transform: CanonicalBridgeGoldenScenarios.buildOpenAIChat
+            ),
             .throwingBehaviorTransform(
                 id: "canonical/bridge/claude-to-openai-chat/rich-tool-loop",
                 path: "canonical/bridge/claude-to-openai-chat/rich-tool-loop.json",
@@ -1726,6 +1733,22 @@ private enum CanonicalRequestGoldenScenarios {
 }
 
 private enum CanonicalBridgeGoldenScenarios {
+    static let claudeToOpenAIChatDocumentURLLossy = ClaudeMessageRequest(
+        model: "claude-sonnet-4-5",
+        messages: [
+            ClaudeMessage(role: "user", content: .blocks([
+                .document(ClaudeDocumentBlock(
+                    source: [
+                        "type": AnyCodable("url"),
+                        "url": AnyCodable("https://example.com/spec"),
+                    ],
+                    title: "Spec"
+                )),
+            ])),
+        ],
+        maxTokens: 512
+    )
+
     static let claudeToOpenAIChatRichToolLoop = ClaudeMessageRequest(
         model: "claude-sonnet-4-5",
         messages: [
