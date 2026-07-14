@@ -1,6 +1,12 @@
 {
   "cases" : [
     {
+      "id" : "canonical/bridge/claude-to-openai-chat/document-url-lossy",
+      "kind" : "json-transform",
+      "path" : "canonical/bridge/claude-to-openai-chat/document-url-lossy.json",
+      "sha256" : "b871fbab25ae457649776c02624b144a2c163dfa538c9cde5f71051385e18b65"
+    },
+    {
       "id" : "canonical/bridge/claude-to-openai-chat/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/bridge/claude-to-openai-chat/rich-tool-loop.json",
