@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 101)
+        XCTAssertEqual(cases.count, 102)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -261,6 +261,13 @@ private enum ContractsV1GoldenCatalog {
                 path: "canonical/request/claude/rich-tool-loop.json",
                 input: CanonicalRequestGoldenScenarios.claudeRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeRequestMappingPreservesToolConfigAndRichItems",
+                transform: CanonicalRequestGoldenScenarios.mapClaude
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/request/claude/content-variants",
+                path: "canonical/request/claude/content-variants.json",
+                input: CanonicalRequestGoldenScenarios.claudeContentVariants,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapClaude
             ),
             .roundTrip(
@@ -1237,6 +1244,94 @@ private enum CanonicalRequestGoldenScenarios {
             disableParallelToolUse: true
         ),
         metadata: ClaudeMetadata(userId: "user_123")
+    )
+
+    static let claudeContentVariants = ClaudeMessageRequest(
+        model: "claude-fixture-variants",
+        messages: [
+            ClaudeMessage(role: "user", content: .blocks([
+                .image(ClaudeImageBlock(source: ClaudeImageSource(
+                    mediaType: "image/png",
+                    data: "<fixture-image-base64>"
+                ))),
+                .image(ClaudeImageBlock(source: ClaudeImageSource(
+                    url: "https://example.test/fixture.png"
+                ))),
+                .document(ClaudeDocumentBlock(source: [
+                    "type": AnyCodable("text"),
+                    "text": AnyCodable("Inline fixture document"),
+                ])),
+                .document(ClaudeDocumentBlock(source: [
+                    "type": AnyCodable("url"),
+                    "url": AnyCodable("https://example.test/fixture.txt"),
+                ])),
+                .document(ClaudeDocumentBlock(source: [
+                    "type": AnyCodable("base64"),
+                    "data": AnyCodable("<fixture-document-base64>"),
+                    "media_type": AnyCodable("application/pdf"),
+                ])),
+                .document(ClaudeDocumentBlock(source: [
+                    "type": AnyCodable("future_document"),
+                    "marker": AnyCodable("fixture-marker"),
+                ])),
+                .unknown(ClaudeUnknownContentBlock(
+                    type: "future_content",
+                    payload: [
+                        "type": AnyCodable("future_content"),
+                        "marker": AnyCodable("fixture-unknown"),
+                    ]
+                )),
+            ])),
+            ClaudeMessage(role: "assistant", content: .blocks([
+                .redactedThinking(ClaudeRedactedThinkingBlock(data: "<fixture-redacted>")),
+            ])),
+            ClaudeMessage(role: "user", content: .blocks([
+                .toolResult(ClaudeToolResultBlock(
+                    toolUseId: "toolu_variants",
+                    contentBlocks: [
+                        .text(ClaudeTextBlock(
+                            text: "Tool text",
+                            cacheControl: ["type": AnyCodable("ephemeral")]
+                        )),
+                        .image(ClaudeImageBlock(source: ClaudeImageSource(
+                            url: "https://example.test/tool.png"
+                        ))),
+                        .document(ClaudeDocumentBlock(source: [
+                            "type": AnyCodable("text"),
+                            "text": AnyCodable("Tool document"),
+                        ])),
+                        .thinking(ClaudeThinkingBlock(thinking: "Tool reasoning", signature: nil)),
+                        .redactedThinking(ClaudeRedactedThinkingBlock(data: "<fixture-tool-redacted>")),
+                        .unknown(ClaudeUnknownContentBlock(
+                            type: "future_tool_content",
+                            payload: [
+                                "type": AnyCodable("future_tool_content"),
+                                "value": AnyCodable(7),
+                            ]
+                        )),
+                        .toolUse(ClaudeToolUseBlock(
+                            id: "nested_toolu",
+                            name: "nested_lookup",
+                            input: ["query": AnyCodable("nested")]
+                        )),
+                        .toolResult(ClaudeToolResultBlock(
+                            toolUseId: "nested_toolu",
+                            content: "Nested result"
+                        )),
+                    ],
+                    isError: true
+                )),
+            ])),
+        ],
+        systemBlocks: [
+            ClaudeSystemBlock(
+                type: "future_system_text",
+                text: "Future system text",
+                cacheControl: nil
+            ),
+        ],
+        maxTokens: 512,
+        stream: false
     )
 
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
