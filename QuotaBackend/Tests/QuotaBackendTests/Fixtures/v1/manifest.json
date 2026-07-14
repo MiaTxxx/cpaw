@@ -499,6 +499,24 @@
       "sha256" : "08498e4bb7bafc00e5c0aab2aa0b7fd2a6548e06c05d24836d252b022d067911"
     },
     {
+      "id" : "normalization/provider/codex/all-windows-order",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/codex/all-windows-order.json",
+      "sha256" : "917969d466952e9d69f7d53d2cfb505bdfbd4d0cd1e0e57e07d387a4b224e7df"
+    },
+    {
+      "id" : "normalization/provider/codex/missing-slot-matrix",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/codex/missing-slot-matrix.json",
+      "sha256" : "da528510f6fdadf9a1a8c1de4ea430e1bd7baa37182da0887fed9c722c161d02"
+    },
+    {
+      "id" : "normalization/provider/codex/secondary-reset-fallback",
+      "kind" : "json-transform",
+      "path" : "normalization/provider/codex/secondary-reset-fallback.json",
+      "sha256" : "506b431c693078e25385aac473052ee06517d73da4ac2fdc9495d01936d532ca"
+    },
+    {
       "id" : "normalization/quota/entitlement-missing-values",
       "kind" : "json-transform",
       "path" : "normalization/quota/entitlement-missing-values.json",
