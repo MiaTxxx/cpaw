@@ -46,6 +46,10 @@ public sealed class ProviderUsageSummaryTests
         Assert.Equal(72, summary.Quota.RemainingPercent);
         Assert.Equal(QuotaWindowState.Healthy, summary.Quota.State);
         Assert.Equal("5h Window", Assert.Single(summary.Quota.Windows).Label);
+        Assert.Equal(ProviderUsageCategory.Snapshot, summary.Category);
+        Assert.Null(summary.AccountLabel);
+        Assert.Null(summary.Cost);
+        Assert.Null(summary.UnpricedModels);
     }
 
     [Fact]
@@ -94,4 +98,5 @@ public sealed class ProviderUsageSummaryTests
 
         Assert.Throws<ArgumentException>(() => ProviderUsageSummary.Create(raw, quota));
     }
+
 }

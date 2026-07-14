@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace AIUsage.Core.Domain;
 
 public sealed record ProviderUsageSummary
@@ -8,7 +10,10 @@ public sealed record ProviderUsageSummary
         ProviderTimestamp observedAt,
         UsageSource? source,
         QuotaWindowNormalization quota,
-        ProviderTimestamp? nextResetAt)
+        ProviderTimestamp? nextResetAt,
+        ProviderUsageCategory category,
+        string? accountLabel,
+        ProviderCostSummary? cost)
     {
         ProviderId = providerId;
         Account = account;
@@ -16,6 +21,9 @@ public sealed record ProviderUsageSummary
         Source = source;
         Quota = quota;
         NextResetAt = nextResetAt;
+        Category = category;
+        AccountLabel = accountLabel;
+        Cost = cost;
     }
 
     public ProviderId ProviderId { get; }
@@ -30,18 +38,52 @@ public sealed record ProviderUsageSummary
 
     public ProviderTimestamp? NextResetAt { get; }
 
+    public ProviderUsageCategory Category { get; }
+
+    public string? AccountLabel { get; }
+
+    public ProviderCostSummary? Cost { get; }
+
+    public ImmutableArray<string>? UnpricedModels => Cost?.UnpricedModels;
+
     public static ProviderUsageSummary Create(
         RawUsageSnapshot rawSnapshot,
         QuotaWindowNormalization quota,
-        ProviderTimestamp? nextResetAt = null)
+        ProviderTimestamp? nextResetAt = null) =>
+        Create(
+            rawSnapshot,
+            quota,
+            nextResetAt,
+            ProviderUsageCategory.Snapshot,
+            accountLabel: null,
+            cost: null);
+
+    internal static ProviderUsageSummary Create(
+        RawUsageSnapshot rawSnapshot,
+        QuotaWindowNormalization quota,
+        ProviderTimestamp? nextResetAt,
+        ProviderUsageCategory category,
+        string? accountLabel,
+        ProviderCostSummary? cost)
     {
         ArgumentNullException.ThrowIfNull(rawSnapshot);
         ArgumentNullException.ThrowIfNull(quota);
+        if (!Enum.IsDefined(category))
+        {
+            throw new ArgumentOutOfRangeException(nameof(category));
+        }
+
         if (!quota.IsDerivedFrom(rawSnapshot))
         {
             throw new ArgumentException(
                 "Normalized quota windows must be derived from the raw usage snapshot.",
                 nameof(quota));
+        }
+        if (cost is not null && !cost.IsDerivedFrom(rawSnapshot))
+        {
+            throw new ArgumentException(
+                "Cost summaries must be derived from the raw usage snapshot.",
+                nameof(cost));
         }
 
         return new ProviderUsageSummary(
@@ -50,6 +92,16 @@ public sealed record ProviderUsageSummary
             rawSnapshot.ObservedAt,
             rawSnapshot.Source,
             quota,
-            nextResetAt);
+            nextResetAt,
+            category,
+            accountLabel,
+            cost);
     }
+}
+
+public enum ProviderUsageCategory
+{
+    Snapshot,
+    Quota,
+    LocalCost,
 }
