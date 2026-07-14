@@ -2,6 +2,66 @@ import XCTest
 @testable import QuotaBackend
 
 final class UsageNormalizerTests: XCTestCase {
+    func testCodexNormalizationPreservesAllWindowSlotsAndOrder() {
+        let output = CodexUsageNormalizerGoldenScenarios.normalize(
+            CodexUsageNormalizerGoldenScenarios.allWindowsOrder
+        )
+
+        XCTAssertEqual(output.windows.map(\.label), ["5h Window", "Weekly Window", "Code Review"])
+        XCTAssertEqual(output.windows.map(\.remainingPercent), [72, 44, 9])
+        XCTAssertEqual(output.windows.map(\.usedPercent), [28, 56, 91])
+        XCTAssertEqual(output.remainingPercent, 9)
+        XCTAssertEqual(output.state, "critical")
+        XCTAssertEqual(output.nextResetAt, "2030-01-03T03:04:05Z")
+    }
+
+    func testCodexNormalizationFallsBackToSecondaryResetAndIgnoresTertiary() {
+        let output = CodexUsageNormalizerGoldenScenarios.normalize(
+            CodexUsageNormalizerGoldenScenarios.secondaryResetFallback
+        )
+
+        XCTAssertEqual(output.windows.map(\.label), ["5h Window", "Weekly Window", "Code Review"])
+        XCTAssertEqual(output.remainingPercent, 20)
+        XCTAssertEqual(output.state, "watch")
+        XCTAssertEqual(output.nextResetAt, "2030-01-09T03:04:05Z")
+    }
+
+    func testCodexNormalizationPreservesSemanticWindowLabelsWhenSlotsAreMissing() {
+        let output = CodexUsageNormalizerGoldenScenarios.normalizeMatrix(
+            CodexUsageNormalizerGoldenScenarios.missingSlotMatrix
+        )
+
+        XCTAssertEqual(output.cases.map(\.id), [
+            "none",
+            "primary-only",
+            "secondary-only",
+            "tertiary-only",
+            "primary-and-tertiary",
+        ])
+        XCTAssertEqual(output.cases.map { $0.summary.windows.map(\.label) }, [
+            [],
+            ["5h Window"],
+            ["Weekly Window"],
+            ["Code Review"],
+            ["5h Window", "Code Review"],
+        ])
+        XCTAssertEqual(output.cases.map { $0.summary.remainingPercent }, [nil, 80, 48, 15, 8])
+        XCTAssertEqual(output.cases.map { $0.summary.state }, [
+            "active",
+            "healthy",
+            "healthy",
+            "watch",
+            "critical",
+        ])
+        XCTAssertEqual(output.cases.map { $0.summary.nextResetAt }, [
+            nil,
+            "2030-01-03T03:04:05Z",
+            "2030-01-09T03:04:05Z",
+            nil,
+            nil,
+        ])
+    }
+
     func testPercentWindowDerivesUsedPercentFromRemaining() {
         let output = UsageNormalizerGoldenScenarios.createPercentWindow(
             UsageNormalizerGoldenScenarios.percentDerived

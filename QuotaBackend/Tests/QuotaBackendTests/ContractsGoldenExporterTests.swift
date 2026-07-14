@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 91)
+        XCTAssertEqual(cases.count, 94)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -355,6 +355,27 @@ private enum ContractsV1GoldenCatalog {
                 path: "contracts/provider/provider-usage-null-source-root.json",
                 inputJSON: #"{"provider":"fixture-roots","label":"Roots Fixture","fetchedAt":"2030-01-02T03:04:05Z","source":{"mode":"local","type":"authFile","roots":["/fixture/root",null]},"extra":{}}"#,
                 as: ProviderUsage.self
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/codex/all-windows-order",
+                path: "normalization/provider/codex/all-windows-order.json",
+                input: CodexUsageNormalizerGoldenScenarios.allWindowsOrder,
+                sourceTest: "UsageNormalizerTests.testCodexNormalizationPreservesAllWindowSlotsAndOrder",
+                transform: CodexUsageNormalizerGoldenScenarios.normalize
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/codex/missing-slot-matrix",
+                path: "normalization/provider/codex/missing-slot-matrix.json",
+                input: CodexUsageNormalizerGoldenScenarios.missingSlotMatrix,
+                sourceTest: "UsageNormalizerTests.testCodexNormalizationPreservesSemanticWindowLabelsWhenSlotsAreMissing",
+                transform: CodexUsageNormalizerGoldenScenarios.normalizeMatrix
+            ),
+            .behaviorTransform(
+                id: "normalization/provider/codex/secondary-reset-fallback",
+                path: "normalization/provider/codex/secondary-reset-fallback.json",
+                input: CodexUsageNormalizerGoldenScenarios.secondaryResetFallback,
+                sourceTest: "UsageNormalizerTests.testCodexNormalizationFallsBackToSecondaryResetAndIgnoresTertiary",
+                transform: CodexUsageNormalizerGoldenScenarios.normalize
             ),
             .behaviorTransform(
                 id: "normalization/quota/entitlement-missing-values",
