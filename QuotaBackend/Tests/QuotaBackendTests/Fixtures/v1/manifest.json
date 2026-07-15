@@ -61,6 +61,18 @@
       "sha256" : "05c3ac6f79a9a078ad063d5ad7f35a60eb5de8d154acf9722687eaf07f833418"
     },
     {
+      "id" : "canonical/response/openai-responses/content-hosted-variants",
+      "kind" : "json-transform",
+      "path" : "canonical/response/openai-responses/content-hosted-variants.json",
+      "sha256" : "450e2ee7e93c0689c0f3226f134c20b3cb06b1eb44b19efdd85df6412c542c52"
+    },
+    {
+      "id" : "canonical/response/openai-responses/mixed-tool-loop",
+      "kind" : "json-transform",
+      "path" : "canonical/response/openai-responses/mixed-tool-loop.json",
+      "sha256" : "9b6e529e7d780289b3475ecb248d1d373a787fd291ffcdfbf01e6e83b158751c"
+    },
+    {
       "id" : "contracts/account/account-credential-all-fields",
       "kind" : "json-transform",
       "path" : "contracts/account/account-credential-all-fields.json",
