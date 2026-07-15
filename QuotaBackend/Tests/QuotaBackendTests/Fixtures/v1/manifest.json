@@ -97,6 +97,24 @@
       "sha256" : "326a821e90cb2d10b5b80df7c2dac0a597bf84e3820992b514f2f4bc24843d54"
     },
     {
+      "id" : "canonical/stream/openai-upstream/finish-usage-matrix",
+      "kind" : "json-transform",
+      "path" : "canonical/stream/openai-upstream/finish-usage-matrix.json",
+      "sha256" : "b04d5aeb92975018dd56461ffb314721730e29344488bf1e2ebdee46f6f410be"
+    },
+    {
+      "id" : "canonical/stream/openai-upstream/lifecycle-switches",
+      "kind" : "json-transform",
+      "path" : "canonical/stream/openai-upstream/lifecycle-switches.json",
+      "sha256" : "da62f48f8ddffbc5abaa248639e715ad9762888da2f412c18f662dd7404d38f6"
+    },
+    {
+      "id" : "canonical/stream/openai-upstream/tool-buffering-completion",
+      "kind" : "json-transform",
+      "path" : "canonical/stream/openai-upstream/tool-buffering-completion.json",
+      "sha256" : "399f6596b1ee6c70f20a6727c33f27507044bdb745375106c655a8917c25df7e"
+    },
+    {
       "id" : "contracts/account/account-credential-all-fields",
       "kind" : "json-transform",
       "path" : "contracts/account/account-credential-all-fields.json",
