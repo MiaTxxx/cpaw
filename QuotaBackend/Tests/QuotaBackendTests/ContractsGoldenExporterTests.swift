@@ -7,7 +7,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 116)
+        XCTAssertEqual(cases.count, 119)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -396,6 +396,27 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalStreamGoldenScenarios.boundaryEvents,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalStreamGoldenScenarios.mapClaude
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/openai-upstream/lifecycle-switches",
+                path: "canonical/stream/openai-upstream/lifecycle-switches.json",
+                input: CanonicalStreamGoldenScenarios.openAIUpstreamLifecycleSwitches,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIUpstreamStreamMapperSynthesizesLifecycle",
+                transform: CanonicalStreamGoldenScenarios.mapOpenAIUpstream
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/openai-upstream/tool-buffering-completion",
+                path: "canonical/stream/openai-upstream/tool-buffering-completion.json",
+                input: CanonicalStreamGoldenScenarios.openAIUpstreamToolBufferingCompletion,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIUpstreamStreamMapperBuffersToolArgumentsUntilMetadataArrives",
+                transform: CanonicalStreamGoldenScenarios.mapOpenAIUpstream
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/openai-upstream/finish-usage-matrix",
+                path: "canonical/stream/openai-upstream/finish-usage-matrix.json",
+                input: CanonicalStreamGoldenScenarios.openAIUpstreamFinishUsageMatrix,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalStreamGoldenScenarios.mapOpenAIUpstream
             ),
             .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/empty-defaults",
@@ -2353,11 +2374,145 @@ private enum CanonicalStreamGoldenScenarios {
         .messageStop,
     ])
 
+    static let openAIUpstreamLifecycleSwitches = CanonicalOpenAIUpstreamStreamGoldenInput(
+        sequences: [
+            CanonicalOpenAIUpstreamStreamGoldenSequence(
+                label: "lifecycle-switches",
+                role: "assistant",
+                events: [
+                    .reasoningSummaryDelta("R1"),
+                    .reasoningSummaryDelta(""),
+                    .textDelta("T1"),
+                    .textDelta(""),
+                    .reasoningSummaryDelta("R2"),
+                    .toolCallStarted(index: 5, id: "call_5", name: "lookup"),
+                    .toolCallArgumentsDelta(index: 5, argumentsDelta: "{\"q\":\"fixture\"}"),
+                    .textDelta("T2"),
+                    .completed(
+                        finishReason: "length",
+                        usage: OpenAIUsage(
+                            promptTokens: 4_294_967_400,
+                            completionTokens: 4_294_967_296,
+                            totalTokens: 8_589_934_696,
+                            promptTokensDetails: OpenAIUsage.PromptTokensDetails(
+                                cachedTokens: 4_294_967_296
+                            )
+                        )
+                    ),
+                ]
+            ),
+        ]
+    )
+
+    static let openAIUpstreamToolBufferingCompletion = CanonicalOpenAIUpstreamStreamGoldenInput(
+        sequences: [
+            CanonicalOpenAIUpstreamStreamGoldenSequence(
+                label: "tool-buffering-completion",
+                role: "developer",
+                events: [
+                    .toolCallArgumentsDelta(index: 7, argumentsDelta: "{\"late\":"),
+                    .toolCallArgumentsDelta(index: 7, argumentsDelta: ""),
+                    .toolCallArgumentsDelta(index: 2, argumentsDelta: "{\"two\":2}"),
+                    .toolCallArgumentsDelta(index: 9, argumentsDelta: "{\"nine\":9}"),
+                    .toolCallStarted(index: 7, id: "call_7", name: "lookup"),
+                    .toolCallStarted(index: 7, id: "ignored_call", name: "ignored_name"),
+                    .toolCallArgumentsDelta(index: 7, argumentsDelta: ""),
+                    .toolCallArgumentsDelta(index: 7, argumentsDelta: "true}"),
+                    .completed(finishReason: "tool_calls", usage: nil),
+                ]
+            ),
+        ]
+    )
+
+    static let openAIUpstreamFinishUsageMatrix = CanonicalOpenAIUpstreamStreamGoldenInput(
+        sequences: [
+            completedSequence(label: "stop-alias", role: "user", finishReason: "stop"),
+            completedSequence(label: "end-turn", finishReason: "end_turn"),
+            completedSequence(
+                label: "tool-use-explicit-miss",
+                finishReason: "tool_calls",
+                usage: OpenAIUsage(
+                    promptTokens: 100,
+                    completionTokens: 7,
+                    totalTokens: 107,
+                    promptCacheHitTokens: 75,
+                    promptCacheMissTokens: 25,
+                    promptTokensDetails: OpenAIUsage.PromptTokensDetails(cachedTokens: 70)
+                )
+            ),
+            completedSequence(label: "max-tokens", finishReason: "length"),
+            completedSequence(label: "pause-turn", finishReason: "pause_turn"),
+            completedSequence(label: "refusal", finishReason: "refusal"),
+            completedSequence(
+                label: "content-filter-cache-clamp",
+                finishReason: "content_filter",
+                usage: OpenAIUsage(
+                    promptTokens: 5,
+                    completionTokens: 2,
+                    totalTokens: 7,
+                    promptTokensDetails: OpenAIUsage.PromptTokensDetails(cachedTokens: 10)
+                )
+            ),
+            completedSequence(
+                label: "context-window",
+                finishReason: "model_context_window_exceeded"
+            ),
+            completedSequence(
+                label: "unknown",
+                role: "future_role",
+                finishReason: "future_stop"
+            ),
+            completedSequence(label: "nil-finish-and-usage", finishReason: nil),
+        ]
+    )
+
     static func mapClaude(_ input: CanonicalClaudeStreamGoldenInput) -> AnyCodable {
         let mapper = CanonicalClaudeStreamMapper()
         return AnyCodable([
             "events": AnyCodable(input.events.flatMap { mapper.map($0.event) }.map(project)),
         ] as [String: AnyCodable])
+    }
+
+    static func mapOpenAIUpstream(
+        _ input: CanonicalOpenAIUpstreamStreamGoldenInput
+    ) -> AnyCodable {
+        let projectedSequences = input.sequences.map { sequence -> AnyCodable in
+            var mapper = CanonicalOpenAIUpstreamStreamMapper()
+            let role = canonicalRole(sequence.role)
+            let events = sequence.events.flatMap { mapper.map($0.event, role: role) }
+            return AnyCodable([
+                "label": AnyCodable(sequence.label),
+                "events": AnyCodable(events.map(project)),
+            ] as [String: AnyCodable])
+        }
+
+        return AnyCodable([
+            "sequences": AnyCodable(projectedSequences),
+        ] as [String: AnyCodable])
+    }
+
+    private static func completedSequence(
+        label: String,
+        role: String = "assistant",
+        finishReason: String?,
+        usage: OpenAIUsage? = nil
+    ) -> CanonicalOpenAIUpstreamStreamGoldenSequence {
+        CanonicalOpenAIUpstreamStreamGoldenSequence(
+            label: label,
+            role: role,
+            events: [.completed(finishReason: finishReason, usage: usage)]
+        )
+    }
+
+    private static func canonicalRole(_ raw: String) -> CanonicalRole {
+        switch raw {
+        case "system": return .system
+        case "user": return .user
+        case "assistant": return .assistant
+        case "tool": return .tool
+        case "developer": return .developer
+        default: return .unknown(raw)
+        }
     }
 
     private static func messageDelta(
@@ -2462,6 +2617,68 @@ private enum CanonicalStreamGoldenScenarios {
 
 private struct CanonicalClaudeStreamGoldenInput: Encodable {
     let events: [EncodableClaudeStreamEvent]
+}
+
+private struct CanonicalOpenAIUpstreamStreamGoldenInput: Encodable {
+    let sequences: [CanonicalOpenAIUpstreamStreamGoldenSequence]
+}
+
+private struct CanonicalOpenAIUpstreamStreamGoldenSequence: Encodable {
+    let label: String
+    let role: String
+    let events: [EncodableOpenAIUpstreamStreamEvent]
+}
+
+private enum EncodableOpenAIUpstreamStreamEvent: Encodable {
+    case textDelta(String)
+    case reasoningSummaryDelta(String)
+    case toolCallStarted(index: Int, id: String, name: String)
+    case toolCallArgumentsDelta(index: Int, argumentsDelta: String)
+    case completed(finishReason: String?, usage: OpenAIUsage?)
+
+    private enum CodingKeys: String, CodingKey {
+        case type, text, index, id, name, usage
+        case argumentsDelta = "arguments_delta"
+        case finishReason = "finish_reason"
+    }
+
+    var event: OpenAIUpstreamStreamEvent {
+        switch self {
+        case .textDelta(let text): return .textDelta(text)
+        case .reasoningSummaryDelta(let text): return .reasoningSummaryDelta(text)
+        case .toolCallStarted(let index, let id, let name):
+            return .toolCallStarted(index: index, id: id, name: name)
+        case .toolCallArgumentsDelta(let index, let argumentsDelta):
+            return .toolCallArgumentsDelta(index: index, argumentsDelta: argumentsDelta)
+        case .completed(let finishReason, let usage):
+            return .completed(finishReason: finishReason, usage: usage)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .textDelta(let text):
+            try container.encode("text_delta", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .reasoningSummaryDelta(let text):
+            try container.encode("reasoning_summary_delta", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .toolCallStarted(let index, let id, let name):
+            try container.encode("tool_call_started", forKey: .type)
+            try container.encode(index, forKey: .index)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
+        case .toolCallArgumentsDelta(let index, let argumentsDelta):
+            try container.encode("tool_call_arguments_delta", forKey: .type)
+            try container.encode(index, forKey: .index)
+            try container.encode(argumentsDelta, forKey: .argumentsDelta)
+        case .completed(let finishReason, let usage):
+            try container.encode("completed", forKey: .type)
+            try container.encodeIfPresent(finishReason, forKey: .finishReason)
+            try container.encodeIfPresent(usage, forKey: .usage)
+        }
+    }
 }
 
 private enum EncodableClaudeStreamEvent: Encodable {
