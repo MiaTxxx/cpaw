@@ -119,6 +119,11 @@ extension CanonicalRequestGoldenScenarios {
             name: "invalid_json",
             inputJSON: "{"
         )),
+        .toolCall(CanonicalToolCall(
+            id: "toolu_duplicate_keys",
+            name: "duplicate_keys",
+            inputJSON: #"{"query":"first","query":"last"}"#
+        )),
         .reasoning(CanonicalReasoningItem(summaryText: "Summary fallback")),
         .reasoning(CanonicalReasoningItem(fullText: "")),
         .reasoning(CanonicalReasoningItem()),
