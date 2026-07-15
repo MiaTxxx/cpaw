@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 105)
+        XCTAssertEqual(cases.count, 106)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -290,6 +290,13 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalRequestGoldenScenarios.claudeEmptyDefaults,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapClaude
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/request/openai-chat/rich-tool-loop",
+                path: "canonical/request/openai-chat/rich-tool-loop.json",
+                input: CanonicalRequestGoldenScenarios.openAIChatRichToolLoop,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIChatRequestMappingSeparatesSystemAndToolMessages",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
             ),
             .roundTrip(
                 id: "contracts/account/account-credential-all-fields",
@@ -1380,8 +1387,52 @@ private enum CanonicalRequestGoldenScenarios {
         )
     )
 
+    static let openAIChatRichToolLoop = OpenAIChatCompletionRequest(
+        model: "gpt-4.1",
+        messages: [
+            OpenAIChatMessage(role: "system", content: .text("You are strict.")),
+            OpenAIChatMessage(role: "user", content: .parts([
+                .text(OpenAITextPart(text: "Summarize this")),
+                .inputFile(OpenAIFilePart(fileId: "file_42", filename: "notes.txt")),
+            ])),
+            OpenAIChatMessage(
+                role: "assistant",
+                content: .text("I'll call a tool."),
+                toolCalls: [
+                    OpenAIToolCall(
+                        id: "call_1",
+                        function: OpenAIFunctionCall(
+                            name: "lookup",
+                            arguments: "{\"query\":\"quota\"}"
+                        )
+                    ),
+                ]
+            ),
+            OpenAIChatMessage(
+                role: "tool",
+                content: .text("done"),
+                toolCallId: "call_1"
+            ),
+        ],
+        stream: true,
+        tools: [
+            OpenAITool(function: OpenAIFunction(
+                name: "lookup",
+                description: "Lookup docs",
+                parameters: ["type": AnyCodable("object")]
+            )),
+        ],
+        toolChoice: .function("lookup"),
+        parallelToolCalls: false
+    )
+
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
         let canonical = try CanonicalRequestMapper().mapClaude(request)
+        return project(canonical)
+    }
+
+    static func mapOpenAIChat(_ request: OpenAIChatCompletionRequest) throws -> AnyCodable {
+        let canonical = try CanonicalRequestMapper().mapOpenAIChatCompletions(request)
         return project(canonical)
     }
 
