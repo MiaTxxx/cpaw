@@ -6,6 +6,91 @@ namespace AIUsage.Core.Proxy.Canonical;
 
 public static partial class CanonicalResponseMapper
 {
+    private static readonly IReadOnlyDictionary<string, HostedOutputDescriptor>
+        HostedOutputDescriptors = new Dictionary<string, HostedOutputDescriptor>(StringComparer.Ordinal)
+        {
+            ["file_search_call"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: true,
+                ["type", "id", "queries", "status", "results"]),
+            ["web_search_call"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: true,
+                ["type", "id", "status", "action"]),
+            ["computer_call"] = new(
+                "call_id", CallIdRequired: false, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: true,
+                ["type", "id", "call_id", "status", "action", "actions", "pending_safety_checks", "created_by"]),
+            ["computer_call_output"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "output", "status", "acknowledged_safety_checks", "created_by"]),
+            ["image_generation_call"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "status", "result"]),
+            ["code_interpreter_call"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "status", "code", "container_id", "outputs", "created_by"]),
+            ["tool_search_call"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "arguments", "call_id", "execution", "status", "created_by"]),
+            ["tool_search_output"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "execution", "status", "tools", "created_by"]),
+            ["local_shell_call"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "call_id", "status", "action", "created_by"]),
+            ["local_shell_call_output"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "output", "status", "created_by"]),
+            ["shell_call"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "action", "call_id", "environment", "status", "created_by"]),
+            ["shell_call_output"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "max_output_length", "output", "status", "created_by"]),
+            ["apply_patch_call"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: true,
+                ["type", "id", "call_id", "status", "operation", "created_by"]),
+            ["apply_patch_call_output"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "status", "created_by", "output"]),
+            ["mcp_list_tools"] = new(
+                "id", CallIdRequired: true, HasStatus: false, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "server_label", "tools", "error", "created_by"]),
+            ["mcp_approval_request"] = new(
+                "id", CallIdRequired: true, HasStatus: false, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "arguments", "name", "server_label"]),
+            ["mcp_approval_response"] = new(
+                "approval_request_id", CallIdRequired: true, HasStatus: false, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "approval_request_id", "approve", "reason"]),
+            ["mcp_call"] = new(
+                "id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: true,
+                ["type", "id", "arguments", "name", "server_label", "approval_request_id", "error", "output", "status"]),
+            ["custom_tool_call"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: true,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "input", "name", "status", "created_by", "namespace"]),
+            ["custom_tool_call_output"] = new(
+                "call_id", CallIdRequired: true, HasStatus: true, StatusRequired: false,
+                ParticipatesInPending: false,
+                ["type", "id", "call_id", "output", "status", "created_by"]),
+        };
+
     public static CanonicalResponse FromOpenAIResponses(OpenAIResponsesResponseWire response)
     {
         ArgumentNullException.ThrowIfNull(response);
@@ -16,6 +101,21 @@ public static partial class CanonicalResponseMapper
         foreach (var output in response.Output)
         {
             var type = ReadRequiredString(output, "type", "OpenAI Responses output item");
+            if (HostedOutputDescriptors.TryGetValue(type, out var hostedDescriptor))
+            {
+                var hosted = MapOpenAIResponsesHostedToolEvent(
+                    output,
+                    type,
+                    hostedDescriptor);
+                items.Add(hosted);
+                if (hostedDescriptor.ParticipatesInPending)
+                {
+                    hasPendingHostedTool |= HostedToolStatusRequiresPauseTurn(hosted.Status.Value);
+                }
+
+                continue;
+            }
+
             switch (type)
             {
                 case "reasoning":
@@ -36,12 +136,6 @@ public static partial class CanonicalResponseMapper
                         ReadOptionalString(output, "id", "OpenAI Responses compaction"),
                         ReadRequiredString(output, "encrypted_content", "OpenAI Responses compaction"),
                         []));
-                    break;
-                case "file_search_call":
-                case "web_search_call":
-                    var hosted = MapOpenAIResponsesHostedToolEvent(output, type);
-                    items.Add(hosted);
-                    hasPendingHostedTool |= HostedToolStatusRequiresPauseTurn(hosted.Status.Value);
                     break;
                 default:
                     items.Add(new CanonicalHostedToolEvent(
@@ -196,14 +290,42 @@ public static partial class CanonicalResponseMapper
 
     private static CanonicalHostedToolEvent MapOpenAIResponsesHostedToolEvent(
         JsonElement item,
-        string type) =>
-        new(
+        string type,
+        HostedOutputDescriptor descriptor)
+    {
+        var context = $"OpenAI Responses {type}";
+        var callId = descriptor.CallIdRequired
+            ? ReadRequiredString(item, descriptor.CallIdField, context)
+            : ReadOptionalString(item, descriptor.CallIdField, context);
+        var rawStatus = descriptor.HasStatus
+            ? descriptor.StatusRequired
+                ? ReadRequiredString(item, "status", context)
+                : ReadOptionalString(item, "status", context)
+            : null;
+        return new CanonicalHostedToolEvent(
             type,
-            ReadRequiredString(item, "id", $"OpenAI Responses {type}"),
-            MapOpenAIResponsesItemStatus(
-                ReadOptionalString(item, "status", $"OpenAI Responses {type}")),
-            item,
+            callId,
+            MapOpenAIResponsesItemStatus(rawStatus),
+            ProjectHostedPayload(item, descriptor.PayloadKeys),
             []);
+    }
+
+    private static JsonElement ProjectHostedPayload(
+        JsonElement item,
+        IReadOnlyList<string> allowedKeys)
+    {
+        var payload = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var key in allowedKeys)
+        {
+            if (item.TryGetProperty(key, out var value)
+                && value.ValueKind != JsonValueKind.Null)
+            {
+                payload[key] = value.Clone();
+            }
+        }
+
+        return JsonSerializer.SerializeToElement(payload);
+    }
 
     private static CanonicalUsage? MapOpenAIResponsesUsage(OpenAIResponsesUsageWire? usage)
     {
@@ -336,6 +458,14 @@ public static partial class CanonicalResponseMapper
 
         return property.GetString();
     }
+
+    private sealed record HostedOutputDescriptor(
+        string CallIdField,
+        bool CallIdRequired,
+        bool HasStatus,
+        bool StatusRequired,
+        bool ParticipatesInPending,
+        IReadOnlyList<string> PayloadKeys);
 
     private static void RequireObject(JsonElement value, string context)
     {
