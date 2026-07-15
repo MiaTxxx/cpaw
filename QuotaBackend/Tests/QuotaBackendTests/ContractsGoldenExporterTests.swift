@@ -1831,88 +1831,151 @@ private enum CanonicalRequestGoldenScenarios {
         .text(CanonicalTextPart(text: "")),
     ]
 
+    private static let claudeBuilderRichMessageParts: [CanonicalContentPart] = [
+        .text(CanonicalTextPart(text: "Hello from canonical.")),
+        .image(CanonicalImagePart(
+            source: .base64,
+            data: "AAAA",
+            mediaType: "image/png"
+        )),
+        .document(CanonicalDocumentPart(
+            source: .inlineText("Inline document text"),
+            title: "Inline title",
+            context: "Inline context",
+            citations: AnyCodable([
+                "source": AnyCodable("fixture")
+            ] as [String: AnyCodable])
+        )),
+        .document(CanonicalDocumentPart(
+            source: .contentParts(claudeBuilderNestedDocumentParts)
+        )),
+        .document(CanonicalDocumentPart(
+            source: .url("https://example.test/fixture.pdf")
+        )),
+        .document(CanonicalDocumentPart(
+            source: .base64(data: "BASE64", mediaType: nil)
+        )),
+        .document(CanonicalDocumentPart(
+            source: .fileID("file_doc_001")
+        )),
+        .fileRef(CanonicalFileReference(
+            fileID: "file_ref_001",
+            filename: "report.txt"
+        )),
+        .reasoningText(CanonicalReasoningTextPart(text: "Reasoning text")),
+        .refusal(CanonicalRefusalPart(text: "Refusal text")),
+        .unknown(CanonicalUnknownPart(
+            type: "future_part",
+            payload: AnyCodable([
+                "marker": AnyCodable("ignored")
+            ] as [String: AnyCodable])
+        )),
+    ]
+
+    private static let claudeBuilderBoundaryMessageParts: [CanonicalContentPart] = [
+        .image(CanonicalImagePart(
+            source: .url,
+            data: "https://example.test/image.png",
+            mediaType: "image/png"
+        )),
+        .image(CanonicalImagePart(
+            source: .base64,
+            data: "AAAA",
+            mediaType: nil
+        )),
+        .unknown(CanonicalUnknownPart(type: "future_part")),
+    ]
+
+    private static let claudeBuilderRichItems: [CanonicalConversationItem] = [
+        .message(CanonicalMessage(
+            role: .assistant,
+            parts: claudeBuilderRichMessageParts
+        )),
+        .toolCall(CanonicalToolCall(
+            id: "toolu_fixture_response_001",
+            name: "lookup",
+            inputJSON: #"{"query":"fixture","limit":2}"#
+        )),
+        .reasoning(CanonicalReasoningItem(
+            fullText: "Full reasoning",
+            signature: "sig_fixture_response_001"
+        )),
+        .reasoning(CanonicalReasoningItem(
+            encryptedContent: "encrypted-redacted",
+            redacted: true,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "redacted_data",
+                value: AnyCodable("<redacted-fixture>")
+            )]
+        )),
+        .toolResult(CanonicalToolResult(toolCallID: "toolu_fixture_response_001")),
+        .compaction(CanonicalCompactionItem(
+            id: "compact_fixture_001",
+            encryptedContent: "encrypted-compaction"
+        )),
+        .hostedToolEvent(CanonicalHostedToolEvent(
+            vendorType: "computer_call",
+            callID: "call_hosted_001",
+            status: .completed,
+            payload: AnyCodable(["marker": AnyCodable("ignored")] as [String: AnyCodable])
+        )),
+        .message(CanonicalMessage(
+            role: .user,
+            parts: [.text(CanonicalTextPart(text: "ignored user message"))]
+        )),
+    ]
+
+    private static let claudeBuilderBoundaryItems: [CanonicalConversationItem] = [
+        .toolCall(CanonicalToolCall(
+            id: "toolu_invalid_array",
+            name: "invalid_array",
+            inputJSON: "[1,2,3]"
+        )),
+        .toolCall(CanonicalToolCall(
+            id: "toolu_invalid_scalar",
+            name: "invalid_scalar",
+            inputJSON: "42"
+        )),
+        .reasoning(CanonicalReasoningItem(summaryText: "Summary fallback")),
+        .reasoning(CanonicalReasoningItem(fullText: "")),
+        .reasoning(CanonicalReasoningItem()),
+        .reasoning(CanonicalReasoningItem(
+            encryptedContent: "encrypted-fallback",
+            redacted: true,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "other",
+                key: "redacted_data",
+                value: AnyCodable("wrong-vendor")
+            )]
+        )),
+        .reasoning(CanonicalReasoningItem(
+            encryptedContent: "encrypted-non-string",
+            redacted: true,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "redacted_data",
+                value: AnyCodable(7)
+            )]
+        )),
+        .reasoning(CanonicalReasoningItem(redacted: true)),
+        .message(CanonicalMessage(
+            role: .assistant,
+            parts: claudeBuilderBoundaryMessageParts
+        )),
+        .toolResult(CanonicalToolResult(toolCallID: "toolu_skipped")),
+        .compaction(CanonicalCompactionItem()),
+        .hostedToolEvent(CanonicalHostedToolEvent(
+            vendorType: "future_hosted",
+            status: .unknown("future")
+        )),
+    ]
+
     static let claudeBuilderRichContent = builderInput(
         response: CanonicalResponse(
             id: "msg_fixture_claude_builder_response_001",
             model: "claude-source-model",
-            items: [
-                .message(CanonicalMessage(
-                    role: .assistant,
-                    parts: [
-                        .text(CanonicalTextPart(text: "Hello from canonical.")),
-                        .image(CanonicalImagePart(
-                            source: .base64,
-                            data: "AAAA",
-                            mediaType: "image/png"
-                        )),
-                        .document(CanonicalDocumentPart(
-                            source: .inlineText("Inline document text"),
-                            title: "Inline title",
-                            context: "Inline context",
-                            citations: AnyCodable([
-                                "source": AnyCodable("fixture")
-                            ] as [String: AnyCodable])
-                        )),
-                        .document(CanonicalDocumentPart(
-                            source: .contentParts(claudeBuilderNestedDocumentParts)
-                        )),
-                        .document(CanonicalDocumentPart(
-                            source: .url("https://example.test/fixture.pdf")
-                        )),
-                        .document(CanonicalDocumentPart(
-                            source: .base64(data: "BASE64", mediaType: nil)
-                        )),
-                        .document(CanonicalDocumentPart(
-                            source: .fileID("file_doc_001")
-                        )),
-                        .fileRef(CanonicalFileReference(
-                            fileID: "file_ref_001",
-                            filename: "report.txt"
-                        )),
-                        .reasoningText(CanonicalReasoningTextPart(text: "Reasoning text")),
-                        .refusal(CanonicalRefusalPart(text: "Refusal text")),
-                        .unknown(CanonicalUnknownPart(
-                            type: "future_part",
-                            payload: AnyCodable([
-                                "marker": AnyCodable("ignored")
-                            ] as [String: AnyCodable])
-                        )),
-                    ]
-                )),
-                .toolCall(CanonicalToolCall(
-                    id: "toolu_fixture_response_001",
-                    name: "lookup",
-                    inputJSON: #"{"query":"fixture","limit":2}"#
-                )),
-                .reasoning(CanonicalReasoningItem(
-                    fullText: "Full reasoning",
-                    signature: "sig_fixture_response_001"
-                )),
-                .reasoning(CanonicalReasoningItem(
-                    encryptedContent: "encrypted-redacted",
-                    redacted: true,
-                    rawExtensions: [CanonicalVendorExtension(
-                        vendor: "claude",
-                        key: "redacted_data",
-                        value: AnyCodable("<redacted-fixture>")
-                    )]
-                )),
-                .toolResult(CanonicalToolResult(toolCallID: "toolu_fixture_response_001")),
-                .compaction(CanonicalCompactionItem(
-                    id: "compact_fixture_001",
-                    encryptedContent: "encrypted-compaction"
-                )),
-                .hostedToolEvent(CanonicalHostedToolEvent(
-                    vendorType: "computer_call",
-                    callID: "call_hosted_001",
-                    status: .completed,
-                    payload: AnyCodable(["marker": AnyCodable("ignored")] as [String: AnyCodable])
-                )),
-                .message(CanonicalMessage(
-                    role: .user,
-                    parts: [.text(CanonicalTextPart(text: "ignored user message"))]
-                )),
-            ],
+            items: claudeBuilderRichItems,
             stop: CanonicalStop(
                 reason: .pauseTurn,
                 sequence: "<fixture-response-sequence>"
@@ -1933,62 +1996,7 @@ private enum CanonicalRequestGoldenScenarios {
         response: CanonicalResponse(
             id: "msg_fixture_claude_builder_boundary",
             model: nil,
-            items: [
-                .toolCall(CanonicalToolCall(
-                    id: "toolu_invalid_array",
-                    name: "invalid_array",
-                    inputJSON: "[1,2,3]"
-                )),
-                .toolCall(CanonicalToolCall(
-                    id: "toolu_invalid_scalar",
-                    name: "invalid_scalar",
-                    inputJSON: "42"
-                )),
-                .reasoning(CanonicalReasoningItem(summaryText: "Summary fallback")),
-                .reasoning(CanonicalReasoningItem(fullText: "")),
-                .reasoning(CanonicalReasoningItem()),
-                .reasoning(CanonicalReasoningItem(
-                    encryptedContent: "encrypted-fallback",
-                    redacted: true,
-                    rawExtensions: [CanonicalVendorExtension(
-                        vendor: "other",
-                        key: "redacted_data",
-                        value: AnyCodable("wrong-vendor")
-                    )]
-                )),
-                .reasoning(CanonicalReasoningItem(
-                    encryptedContent: "encrypted-non-string",
-                    redacted: true,
-                    rawExtensions: [CanonicalVendorExtension(
-                        vendor: "claude",
-                        key: "redacted_data",
-                        value: AnyCodable(7)
-                    )]
-                )),
-                .reasoning(CanonicalReasoningItem(redacted: true)),
-                .message(CanonicalMessage(
-                    role: .assistant,
-                    parts: [
-                        .image(CanonicalImagePart(
-                            source: .url,
-                            data: "https://example.test/image.png",
-                            mediaType: "image/png"
-                        )),
-                        .image(CanonicalImagePart(
-                            source: .base64,
-                            data: "AAAA",
-                            mediaType: nil
-                        )),
-                        .unknown(CanonicalUnknownPart(type: "future_part")),
-                    ]
-                )),
-                .toolResult(CanonicalToolResult(toolCallID: "toolu_skipped")),
-                .compaction(CanonicalCompactionItem()),
-                .hostedToolEvent(CanonicalHostedToolEvent(
-                    vendorType: "future_hosted",
-                    status: .unknown("future")
-                )),
-            ],
+            items: claudeBuilderBoundaryItems,
             stop: CanonicalStop(reason: .unknown("future_stop")),
             usage: nil
         )
