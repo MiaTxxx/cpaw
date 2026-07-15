@@ -31,6 +31,18 @@
       "sha256" : "44688eb93ea370b5968601d8329644d8cb756d61c5c5c823a1c5c4e09646015f"
     },
     {
+      "id" : "canonical/request/openai-chat/content-variants",
+      "kind" : "json-transform",
+      "path" : "canonical/request/openai-chat/content-variants.json",
+      "sha256" : "b8ed03126babc4c9ac57e940dcad4448f6d6c442606c650acddf530f0bea667b"
+    },
+    {
+      "id" : "canonical/request/openai-chat/empty-defaults",
+      "kind" : "json-transform",
+      "path" : "canonical/request/openai-chat/empty-defaults.json",
+      "sha256" : "f9f4fa5bda5a78666df7efbf8f2799f48b90f2fc431841b7cb780e0532e08c31"
+    },
+    {
       "id" : "canonical/request/openai-chat/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/request/openai-chat/rich-tool-loop.json",

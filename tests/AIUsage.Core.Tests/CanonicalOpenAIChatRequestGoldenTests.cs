@@ -7,14 +7,17 @@ namespace AIUsage.Core.Tests;
 
 public sealed class CanonicalOpenAIChatRequestGoldenTests
 {
-    [Fact]
-    public void OpenAI_chat_request_matches_swift_canonical_projection()
+    [Theory]
+    [InlineData("content-variants.json")]
+    [InlineData("empty-defaults.json")]
+    [InlineData("rich-tool-loop.json")]
+    public void OpenAI_chat_request_matches_swift_canonical_projection(string fixtureName)
     {
         using var fixture = CanonicalGoldenTestSupport.ReadFixture(
             "canonical",
             "request",
             "openai-chat",
-            "rich-tool-loop.json");
+            fixtureName);
         var root = fixture.RootElement;
         var request = WireJson.Deserialize<OpenAIChatCompletionRequestWire>(root.GetProperty("input"));
 
