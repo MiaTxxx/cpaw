@@ -308,7 +308,7 @@ private enum ContractsV1GoldenCatalog {
             .throwingBehaviorTransform(
                 id: "canonical/response/openai-chat/rich-tool-loop",
                 path: "canonical/response/openai-chat/rich-tool-loop.json",
-                input: openAIChatResponse,
+                input: CanonicalRequestGoldenScenarios.openAIChatResponseRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeResponseBuilderMatchesDirectOpenAIToClaudeConverter",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIChatResponse
             ),
@@ -1572,6 +1572,49 @@ private enum CanonicalRequestGoldenScenarios {
         streamOptions: OpenAIChatCompletionRequest.StreamOptions(includeUsage: false),
         parallelToolCalls: true,
         promptCacheKey: "fixture-cache-key"
+    )
+
+    static let openAIChatResponseRichToolLoop = OpenAIChatCompletionResponse(
+        id: "chatcmpl_fixture_canonical_001",
+        created: 1_893_553_445,
+        model: "gpt-fixture-canonical-response",
+        choices: [
+            OpenAIChoice(
+                index: 7,
+                message: OpenAIChatMessage(
+                    role: "assistant",
+                    content: .text("Fixture response"),
+                    toolCalls: [
+                        OpenAIToolCall(
+                            id: "call_fixture_canonical_001",
+                            function: OpenAIFunctionCall(
+                                name: "lookup_fixture",
+                                arguments: "{\"query\":\"quota\"}"
+                            )
+                        ),
+                    ],
+                    reasoningContent: "Synthetic reasoning summary"
+                ),
+                finishReason: "tool_calls"
+            ),
+            OpenAIChoice(
+                index: 0,
+                message: OpenAIChatMessage(
+                    role: "assistant",
+                    content: .text("Ignored second choice"),
+                    reasoningContent: "Ignored second reasoning"
+                ),
+                finishReason: "length"
+            ),
+        ],
+        usage: OpenAIUsage(
+            promptTokens: 4_294_967_296,
+            completionTokens: 128,
+            totalTokens: 4_294_967_424,
+            promptCacheHitTokens: 256,
+            promptCacheMissTokens: 4_294_000_000,
+            promptTokensDetails: OpenAIUsage.PromptTokensDetails(cachedTokens: 64)
+        )
     )
 
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
