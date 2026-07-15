@@ -216,6 +216,8 @@ internal static class CanonicalGoldenTestSupport
             CanonicalReasoningItem reasoning => Project(reasoning),
             CanonicalToolCall toolCall => Project(toolCall),
             CanonicalToolResult toolResult => Project(toolResult),
+            CanonicalCompactionItem compaction => Project(compaction),
+            CanonicalHostedToolEvent hostedToolEvent => Project(hostedToolEvent),
             _ => throw new Xunit.Sdk.XunitException(
                 $"Unsupported canonical conversation item {item.GetType().Name}."),
         };
@@ -276,6 +278,36 @@ internal static class CanonicalGoldenTestSupport
         return value;
     }
 
+    private static Dictionary<string, object?> Project(CanonicalCompactionItem compaction)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "compaction",
+            ["rawExtensions"] = compaction.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "id", compaction.Id);
+        Add(value, "encryptedContent", compaction.EncryptedContent);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalHostedToolEvent hostedToolEvent)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "hosted_tool_event",
+            ["vendorType"] = hostedToolEvent.VendorType,
+            ["status"] = hostedToolEvent.Status.Value,
+            ["rawExtensions"] = hostedToolEvent.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "callID", hostedToolEvent.CallId);
+        if (hostedToolEvent.Payload is { } payload)
+        {
+            value["payload"] = payload;
+        }
+
+        return value;
+    }
+
     private static Dictionary<string, object?> Project(CanonicalContentPart part) =>
         part switch
         {
@@ -293,6 +325,12 @@ internal static class CanonicalGoldenTestSupport
                 ["type"] = "reasoning_text",
                 ["text"] = reasoning.Text,
                 ["rawExtensions"] = reasoning.RawExtensions.Select(Project).ToArray(),
+            },
+            CanonicalRefusalPart refusal => new()
+            {
+                ["type"] = "refusal",
+                ["text"] = refusal.Text,
+                ["rawExtensions"] = refusal.RawExtensions.Select(Project).ToArray(),
             },
             CanonicalUnknownPart unknown => Project(unknown),
             _ => throw new Xunit.Sdk.XunitException(

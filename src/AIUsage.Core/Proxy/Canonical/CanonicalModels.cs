@@ -85,6 +85,14 @@ public readonly record struct CanonicalItemStatus
     public string Value => _value ?? "unknown";
 
     public static CanonicalItemStatus Completed { get; } = new("completed");
+
+    public static CanonicalItemStatus InProgress { get; } = new("in_progress");
+
+    public static CanonicalItemStatus Incomplete { get; } = new("incomplete");
+
+    public static CanonicalItemStatus Failed { get; } = new("failed");
+
+    public static CanonicalItemStatus Unknown { get; } = new("unknown");
 }
 
 public sealed record CanonicalGenerationConfig(
@@ -271,6 +279,11 @@ public sealed record CanonicalReasoningTextPart(
     ImmutableArray<CanonicalVendorExtension> RawExtensions)
     : CanonicalContentPart(RawExtensions);
 
+public sealed record CanonicalRefusalPart(
+    string Text,
+    ImmutableArray<CanonicalVendorExtension> RawExtensions)
+    : CanonicalContentPart(RawExtensions);
+
 public sealed record CanonicalUnknownPart : CanonicalContentPart
 {
     public CanonicalUnknownPart(
@@ -314,6 +327,40 @@ public sealed record CanonicalReasoningItem(
     bool? Redacted,
     ImmutableArray<CanonicalVendorExtension> RawExtensions)
     : CanonicalConversationItem;
+
+public sealed record CanonicalCompactionItem(
+    string? Id,
+    string? EncryptedContent,
+    ImmutableArray<CanonicalVendorExtension> RawExtensions)
+    : CanonicalConversationItem;
+
+public sealed record CanonicalHostedToolEvent : CanonicalConversationItem
+{
+    public CanonicalHostedToolEvent(
+        string vendorType,
+        string? callId,
+        CanonicalItemStatus status,
+        JsonElement? payload,
+        ImmutableArray<CanonicalVendorExtension> rawExtensions)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(vendorType);
+        VendorType = vendorType;
+        CallId = callId;
+        Status = status;
+        Payload = payload?.Clone();
+        RawExtensions = rawExtensions;
+    }
+
+    public string VendorType { get; }
+
+    public string? CallId { get; }
+
+    public CanonicalItemStatus Status { get; }
+
+    public JsonElement? Payload { get; }
+
+    public ImmutableArray<CanonicalVendorExtension> RawExtensions { get; }
+}
 
 public readonly record struct CanonicalLossySeverity
 {
