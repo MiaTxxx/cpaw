@@ -85,6 +85,18 @@
       "sha256" : "24544a4d0d33bd6a9e1c027e0fdeaa7d5adbe77e15e63fd99448df36968ea6b7"
     },
     {
+      "id" : "canonical/stream/claude/boundary-events",
+      "kind" : "json-transform",
+      "path" : "canonical/stream/claude/boundary-events.json",
+      "sha256" : "5f9867d4036e29820e71fc086e86d195e4c7160706da3d4d67dc4fef2b6a543f"
+    },
+    {
+      "id" : "canonical/stream/claude/rich-lifecycle",
+      "kind" : "json-transform",
+      "path" : "canonical/stream/claude/rich-lifecycle.json",
+      "sha256" : "326a821e90cb2d10b5b80df7c2dac0a597bf84e3820992b514f2f4bc24843d54"
+    },
+    {
       "id" : "contracts/account/account-credential-all-fields",
       "kind" : "json-transform",
       "path" : "contracts/account/account-credential-all-fields.json",
