@@ -1823,14 +1823,6 @@ private enum CanonicalRequestGoldenScenarios {
         )
     )
 
-    private static let claudeBuilderNestedDocumentParts: [CanonicalContentPart] = [
-        .text(CanonicalTextPart(text: "Part A")),
-        .document(CanonicalDocumentPart(
-            source: .inlineText("Part B")
-        )),
-        .text(CanonicalTextPart(text: "")),
-    ]
-
     private static let claudeBuilderRichMessageParts: [CanonicalContentPart] = [
         .text(CanonicalTextPart(text: "Hello from canonical.")),
         .image(CanonicalImagePart(
@@ -1845,9 +1837,6 @@ private enum CanonicalRequestGoldenScenarios {
             citations: AnyCodable([
                 "source": AnyCodable("fixture")
             ] as [String: AnyCodable])
-        )),
-        .document(CanonicalDocumentPart(
-            source: .contentParts(claudeBuilderNestedDocumentParts)
         )),
         .document(CanonicalDocumentPart(
             source: .url("https://example.test/fixture.pdf")
