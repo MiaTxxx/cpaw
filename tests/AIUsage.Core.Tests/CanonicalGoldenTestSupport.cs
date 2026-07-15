@@ -78,6 +78,12 @@ internal static class CanonicalGoldenTestSupport
         return JsonSerializer.SerializeToElement(value);
     }
 
+    internal static JsonElement Project(IEnumerable<CanonicalStreamEvent> events) =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["events"] = events.Select(Project).ToArray(),
+        });
+
     internal static void AssertJsonEquivalent(JsonElement expected, JsonElement actual, string path)
     {
         Assert.True(
@@ -275,6 +281,90 @@ internal static class CanonicalGoldenTestSupport
         };
         Add(value, "isError", toolResult.IsError);
         Add(value, "rawTextFallback", toolResult.RawTextFallback);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalStreamEvent streamEvent) =>
+        streamEvent switch
+        {
+            CanonicalStreamMessageStarted started => Project(started),
+            CanonicalStreamContentPartStarted started => Project(started),
+            CanonicalStreamContentPartDelta delta => Project(delta),
+            CanonicalStreamContentPartStopped stopped => new()
+            {
+                ["type"] = "content_part_stopped",
+                ["index"] = stopped.Index,
+            },
+            CanonicalStreamMessageDelta delta => Project(delta),
+            CanonicalStreamMessageStopped => new() { ["type"] = "message_stopped" },
+            CanonicalStreamError error => new()
+            {
+                ["type"] = "error",
+                ["message"] = error.Message,
+                ["rawExtensions"] = error.RawExtensions.Select(Project).ToArray(),
+            },
+            _ => throw new Xunit.Sdk.XunitException(
+                $"Unsupported canonical stream event {streamEvent.GetType().Name}."),
+        };
+
+    private static Dictionary<string, object?> Project(CanonicalStreamMessageStarted started)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "message_started",
+            ["role"] = started.Role.Value,
+            ["rawExtensions"] = started.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "messageID", started.MessageId);
+        Add(value, "model", started.Model);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalStreamContentPartStarted started)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "content_part_started",
+            ["index"] = started.Index,
+            ["kind"] = started.Kind.Value,
+            ["rawExtensions"] = started.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "toolCallID", started.ToolCallId);
+        Add(value, "toolName", started.ToolName);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalStreamContentPartDelta delta)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "content_part_delta",
+            ["index"] = delta.Index,
+            ["kind"] = delta.Kind.Value,
+            ["rawExtensions"] = delta.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "textDelta", delta.TextDelta);
+        Add(value, "jsonDelta", delta.JsonDelta);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalStreamMessageDelta delta)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "message_delta",
+            ["rawExtensions"] = delta.RawExtensions.Select(Project).ToArray(),
+        };
+        if (delta.Stop is not null)
+        {
+            value["stop"] = Project(delta.Stop);
+        }
+
+        if (delta.Usage is not null)
+        {
+            value["usage"] = Project(delta.Usage);
+        }
+
         return value;
     }
 

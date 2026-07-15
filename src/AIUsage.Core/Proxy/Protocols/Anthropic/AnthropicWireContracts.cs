@@ -248,7 +248,10 @@ public sealed record ClaudeUsageWire
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
 }
 
-public sealed record ClaudeContentBlockDeltaEventWire : IJsonOnDeserialized
+[JsonConverter(typeof(ClaudeStreamEventWireJsonConverter))]
+public abstract record ClaudeStreamEventWire;
+
+public sealed record ClaudeContentBlockDeltaEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -312,7 +315,7 @@ public sealed record ClaudeContentDeltaWire : IJsonOnDeserialized
     }
 }
 
-public sealed record ClaudeMessageStartEventWire : IJsonOnDeserialized
+public sealed record ClaudeMessageStartEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -515,7 +518,7 @@ public sealed record ClaudeUnknownContentBlockWire : ClaudeContentBlockWire
     public required JsonElement Value { get; init; }
 }
 
-public sealed record ClaudeContentBlockStartEventWire : IJsonOnDeserialized
+public sealed record ClaudeContentBlockStartEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -533,7 +536,7 @@ public sealed record ClaudeContentBlockStartEventWire : IJsonOnDeserialized
         ClaudeWireDiscriminator.Require(Type, "content_block_start");
 }
 
-public sealed record ClaudeContentBlockStopEventWire : IJsonOnDeserialized
+public sealed record ClaudeContentBlockStopEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -548,7 +551,7 @@ public sealed record ClaudeContentBlockStopEventWire : IJsonOnDeserialized
         ClaudeWireDiscriminator.Require(Type, "content_block_stop");
 }
 
-public sealed record ClaudeMessageDeltaEventWire : IJsonOnDeserialized
+public sealed record ClaudeMessageDeltaEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -587,6 +590,30 @@ public sealed record ClaudeUsageDeltaWire
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
+
+public sealed record ClaudeMessageStopEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "message_stop");
+}
+
+public sealed record ClaudePingEventWire : ClaudeStreamEventWire, IJsonOnDeserialized
+{
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+
+    void IJsonOnDeserialized.OnDeserialized() =>
+        ClaudeWireDiscriminator.Require(Type, "ping");
 }
 
 public sealed record ClaudeFileScopeWire
