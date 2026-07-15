@@ -8,10 +8,12 @@ namespace AIUsage.Core.Tests;
 
 public sealed class CanonicalClaudeToOpenAIChatGoldenTests
 {
-    [Fact]
-    public void Claude_rich_tool_loop_builds_the_swift_openai_chat_payload()
+    [Theory]
+    [InlineData("document-url-lossy.json")]
+    [InlineData("rich-tool-loop.json")]
+    public void Claude_request_builds_the_swift_openai_chat_payload(string fileName)
     {
-        using var fixture = ReadFixture("rich-tool-loop.json");
+        using var fixture = ReadFixture(fileName);
         var root = fixture.RootElement;
         var request = WireJson.Deserialize<ClaudeMessageRequestWire>(root.GetProperty("input"));
         var canonical = CanonicalRequestMapper.FromClaude(request);

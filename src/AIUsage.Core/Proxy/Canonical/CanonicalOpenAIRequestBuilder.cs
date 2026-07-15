@@ -13,7 +13,10 @@ public static class CanonicalOpenAIRequestBuilder
         ArgumentNullException.ThrowIfNull(request);
 
         var messages = new List<OpenAIChatMessageWire>();
-        if (BuildMessageContent(request.System) is { } systemContent)
+        var lossyNotes = ImmutableArray.CreateBuilder<CanonicalLossyNote>();
+        if (BuildMessageContent(
+                request.System,
+                ContentConversionContext.ForSystem(lossyNotes)) is { } systemContent)
         {
             messages.Add(new OpenAIChatMessageWire
             {
@@ -37,7 +40,9 @@ public static class CanonicalOpenAIRequestBuilder
                         nextIndex++;
                     }
 
-                    var assistantContent = BuildMessageContent(message.Parts);
+                    var assistantContent = BuildMessageContent(
+                        message.Parts,
+                        ContentConversionContext.ForMessage(lossyNotes, index));
                     if (assistantContent is not null || toolCalls.Count > 0)
                     {
                         messages.Add(new OpenAIChatMessageWire
@@ -52,7 +57,9 @@ public static class CanonicalOpenAIRequestBuilder
                     index = nextIndex;
                     break;
                 case CanonicalMessage message:
-                    if (BuildMessageContent(message.Parts) is not { } content)
+                    if (BuildMessageContent(
+                            message.Parts,
+                            ContentConversionContext.ForMessage(lossyNotes, index)) is not { } content)
                     {
                         throw new NotSupportedException(
                             $"Canonical {message.Role.Value} message has no OpenAI chat content.");
@@ -78,7 +85,9 @@ public static class CanonicalOpenAIRequestBuilder
                     messages.Add(new OpenAIChatMessageWire
                     {
                         Role = "tool",
-                        Content = BuildToolResultContent(toolResult),
+                        Content = BuildToolResultContent(
+                            toolResult,
+                            ContentConversionContext.ForToolResult(lossyNotes, index)),
                         ToolCallId = toolResult.ToolCallId,
                     });
                     index++;
@@ -104,31 +113,40 @@ public static class CanonicalOpenAIRequestBuilder
             ToolChoice = BuildToolChoice(request.ToolConfig?.Choice),
             ParallelToolCalls = request.ToolConfig?.ParallelCallsAllowed,
         };
-        return new CanonicalBuildResult<OpenAIChatCompletionRequestWire>(payload, []);
+        return new CanonicalBuildResult<OpenAIChatCompletionRequestWire>(
+            payload,
+            lossyNotes.ToImmutable());
     }
 
     private static OpenAIMessageContentWire? BuildMessageContent(
-        ImmutableArray<CanonicalContentPart> parts)
+        ImmutableArray<CanonicalContentPart> parts,
+        ContentConversionContext context)
     {
         if (parts.IsDefaultOrEmpty)
         {
             return null;
         }
 
-        var converted = parts.Select(BuildContentPart).ToArray();
+        var converted = parts
+            .Select(part => BuildContentPart(part, context))
+            .ToArray();
         return converted.Length == 1 && converted[0] is OpenAITextContentPartWire text
             ? new OpenAITextMessageContentWire { Text = text.Text }
             : new OpenAIPartsMessageContentWire { Parts = converted };
     }
 
-    private static OpenAIMessageContentWire BuildToolResultContent(CanonicalToolResult result)
+    private static OpenAIMessageContentWire BuildToolResultContent(
+        CanonicalToolResult result,
+        ContentConversionContext context)
     {
         if (result.Parts.IsDefaultOrEmpty)
         {
             return new OpenAITextMessageContentWire { Text = result.RawTextFallback ?? string.Empty };
         }
 
-        var converted = result.Parts.Select(BuildContentPart).ToArray();
+        var converted = result.Parts
+            .Select(part => BuildContentPart(part, context))
+            .ToArray();
         if (converted.All(part => part is OpenAITextContentPartWire))
         {
             var text = converted
@@ -145,7 +163,9 @@ public static class CanonicalOpenAIRequestBuilder
         return new OpenAIPartsMessageContentWire { Parts = converted };
     }
 
-    private static OpenAIContentPartWire BuildContentPart(CanonicalContentPart part) =>
+    private static OpenAIContentPartWire BuildContentPart(
+        CanonicalContentPart part,
+        ContentConversionContext context) =>
         part switch
         {
             CanonicalTextPart text => new OpenAITextContentPartWire { Text = text.Text },
@@ -176,9 +196,67 @@ public static class CanonicalOpenAIRequestBuilder
                         Filename = document.Title,
                     },
                 },
+            CanonicalDocumentPart { Source: CanonicalUrlDocumentSource url } document =>
+                BuildUrlDocumentPart(document, url, context),
             _ => throw new NotSupportedException(
                 $"Canonical content part {part.GetType().Name} is not mapped by this chat slice."),
         };
+
+    private static OpenAITextContentPartWire BuildUrlDocumentPart(
+        CanonicalDocumentPart document,
+        CanonicalUrlDocumentSource source,
+        ContentConversionContext context)
+    {
+        context.LossyNotes.Add(new CanonicalLossyNote(
+            "chat_document_url_degraded",
+            "URL-backed documents were degraded to explicit text in chat/completions builder.",
+            CanonicalLossySeverity.Warning,
+            context.ItemIndex,
+            context.Path,
+            []));
+
+        var lines = new List<string>
+        {
+            "[Claude document degraded during OpenAI proxy conversion]",
+            "source.type=url",
+        };
+        if (!string.IsNullOrEmpty(document.Title))
+        {
+            lines.Add($"title={document.Title}");
+        }
+
+        if (!string.IsNullOrEmpty(document.Context))
+        {
+            lines.Add($"context={document.Context}");
+        }
+
+        if (!string.IsNullOrEmpty(source.Url))
+        {
+            lines.Add($"detail={source.Url}");
+        }
+
+        return new OpenAITextContentPartWire { Text = string.Join("\n", lines) };
+    }
+
+    private readonly record struct ContentConversionContext(
+        ImmutableArray<CanonicalLossyNote>.Builder LossyNotes,
+        long? ItemIndex,
+        string Path)
+    {
+        internal static ContentConversionContext ForSystem(
+            ImmutableArray<CanonicalLossyNote>.Builder lossyNotes) =>
+            new(lossyNotes, null, "system");
+
+        internal static ContentConversionContext ForMessage(
+            ImmutableArray<CanonicalLossyNote>.Builder lossyNotes,
+            int itemIndex) =>
+            new(lossyNotes, itemIndex, $"items[{itemIndex}].message.parts");
+
+        internal static ContentConversionContext ForToolResult(
+            ImmutableArray<CanonicalLossyNote>.Builder lossyNotes,
+            int itemIndex) =>
+            new(lossyNotes, itemIndex, $"items[{itemIndex}].toolResult.parts");
+    }
 
     private static OpenAIChatToolCallWire BuildToolCall(CanonicalToolCall toolCall) =>
         new()
