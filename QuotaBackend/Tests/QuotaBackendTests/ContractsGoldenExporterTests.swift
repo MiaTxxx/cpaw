@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 106)
+        XCTAssertEqual(cases.count, 108)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -292,10 +292,24 @@ private enum ContractsV1GoldenCatalog {
                 transform: CanonicalRequestGoldenScenarios.mapClaude
             ),
             .throwingBehaviorTransform(
+                id: "canonical/request/openai-chat/content-variants",
+                path: "canonical/request/openai-chat/content-variants.json",
+                input: CanonicalRequestGoldenScenarios.openAIChatContentVariants,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
+            ),
+            .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/rich-tool-loop",
                 path: "canonical/request/openai-chat/rich-tool-loop.json",
                 input: CanonicalRequestGoldenScenarios.openAIChatRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIChatRequestMappingSeparatesSystemAndToolMessages",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/request/openai-chat/empty-defaults",
+                path: "canonical/request/openai-chat/empty-defaults.json",
+                input: CanonicalRequestGoldenScenarios.openAIChatEmptyDefaults,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
             ),
             .roundTrip(
@@ -1424,6 +1438,124 @@ private enum CanonicalRequestGoldenScenarios {
         ],
         toolChoice: .function("lookup"),
         parallelToolCalls: false
+    )
+
+    static let openAIChatContentVariants = OpenAIChatCompletionRequest(
+        model: "gpt-fixture-content-variants",
+        messages: [
+            OpenAIChatMessage(
+                role: "system",
+                content: .parts([
+                    .text(OpenAITextPart(text: "System fixture")),
+                    .unknown(OpenAIUnknownContentPart(
+                        type: "future_system_part",
+                        payload: [
+                            "type": AnyCodable("future_system_part"),
+                            "marker": AnyCodable("ignored-system-marker"),
+                        ]
+                    )),
+                ]),
+                name: "ignored-system-name"
+            ),
+            OpenAIChatMessage(role: "user", content: .text(""), name: "ignored-empty-name"),
+            OpenAIChatMessage(
+                role: "user",
+                content: .parts([
+                    .text(OpenAITextPart(text: "")),
+                    .imageUrl(OpenAIImageUrlPart(imageUrl: OpenAIImageUrl(
+                        url: "https://example.test/fixture.png",
+                        detail: "high"
+                    ))),
+                    .imageUrl(OpenAIImageUrlPart(imageUrl: OpenAIImageUrl(
+                        url: "data:image/png;base64,<fixture-image-base64>",
+                        detail: "low"
+                    ))),
+                    .unknown(OpenAIUnknownContentPart(
+                        type: "future_user_part",
+                        payload: [
+                            "type": AnyCodable("future_user_part"),
+                            "marker": AnyCodable("ignored-user-marker"),
+                        ]
+                    )),
+                ]),
+                name: "fixture-user"
+            ),
+            OpenAIChatMessage(
+                role: "assistant",
+                content: .parts([
+                    .text(OpenAITextPart(text: "Assistant fixture")),
+                ]),
+                name: "fixture-assistant",
+                reasoningContent: "Reasoning fixture"
+            ),
+            OpenAIChatMessage(
+                role: "assistant",
+                toolCalls: [
+                    OpenAIToolCall(
+                        id: "call_content_only",
+                        function: OpenAIFunctionCall(
+                            name: "content_only_tool",
+                            arguments: "{}"
+                        )
+                    ),
+                ]
+            ),
+            OpenAIChatMessage(
+                role: "tool",
+                content: .parts([
+                    .text(OpenAITextPart(text: "first tool line")),
+                    .text(OpenAITextPart(text: "")),
+                    .unknown(OpenAIUnknownContentPart(
+                        type: "future_tool_part",
+                        payload: [
+                            "type": AnyCodable("future_tool_part"),
+                            "marker": AnyCodable("ignored-tool-marker"),
+                        ]
+                    )),
+                ])
+            ),
+            OpenAIChatMessage(
+                role: "user",
+                content: .parts([
+                    .unknown(OpenAIUnknownContentPart(
+                        type: "future_only_part",
+                        payload: [
+                            "type": AnyCodable("future_only_part"),
+                            "marker": AnyCodable("ignored-only-marker"),
+                        ]
+                    )),
+                ]),
+                name: "ignored-unknown-only-name",
+                reasoningContent: "ignored-user-reasoning"
+            ),
+        ]
+    )
+
+    static let openAIChatEmptyDefaults = OpenAIChatCompletionRequest(
+        model: "gpt-fixture-empty-defaults",
+        messages: [
+            OpenAIChatMessage(role: "system", content: .text("")),
+            OpenAIChatMessage(role: "user"),
+            OpenAIChatMessage(role: "user", content: .parts([])),
+            OpenAIChatMessage(role: "assistant", reasoningContent: ""),
+            OpenAIChatMessage(role: "assistant", reasoningContent: " "),
+            OpenAIChatMessage(
+                role: "assistant",
+                toolCalls: [
+                    OpenAIToolCall(
+                        id: "call_empty_defaults",
+                        function: OpenAIFunctionCall(
+                            name: "empty_defaults_tool",
+                            arguments: ""
+                        )
+                    ),
+                ]
+            ),
+            OpenAIChatMessage(role: "tool"),
+        ],
+        streamOptions: OpenAIChatCompletionRequest.StreamOptions(includeUsage: false),
+        parallelToolCalls: true,
+        promptCacheKey: "fixture-cache-key"
     )
 
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
