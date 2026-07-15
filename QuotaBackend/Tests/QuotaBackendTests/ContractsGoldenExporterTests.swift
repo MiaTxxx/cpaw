@@ -1,4 +1,5 @@
 import CryptoKit
+import CoreFoundation
 import Foundation
 import XCTest
 @testable import QuotaBackend
@@ -26,6 +27,29 @@ final class ContractsGoldenExporterTests: XCTestCase {
             cases: ContractsV1GoldenCatalog.makeCases(),
             outputRoot: URL(fileURLWithPath: outputPath, isDirectory: true)
         )
+    }
+
+    func testHostedGoldenPreservesZeroExitCodeAsNumber() throws {
+        let fixtureCase = try XCTUnwrap(
+            ContractsV1GoldenCatalog.makeCases().first {
+                $0.id == "canonical/response/openai-responses/hosted-call-id-matrix"
+            }
+        )
+        let envelope = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: fixtureCase.render()) as? [String: Any]
+        )
+        let expected = try XCTUnwrap(envelope["expected"] as? [String: Any])
+        let items = try XCTUnwrap(expected["items"] as? [[String: Any]])
+        let shellOutput = try XCTUnwrap(items.first {
+            $0["vendorType"] as? String == "shell_call_output"
+        })
+        let payload = try XCTUnwrap(shellOutput["payload"] as? [String: Any])
+        let output = try XCTUnwrap(payload["output"] as? [[String: Any]])
+        let outcome = try XCTUnwrap(output.first?["outcome"] as? [String: Any])
+        let exitCode = try XCTUnwrap(outcome["exit_code"] as? NSNumber)
+
+        XCTAssertNotEqual(CFGetTypeID(exitCode), CFBooleanGetTypeID())
+        XCTAssertEqual(exitCode.intValue, 0)
     }
 }
 
@@ -2133,6 +2157,8 @@ private enum CanonicalRequestGoldenScenarios {
             return AnyCodable(array.map(project))
         case let array as [Any]:
             return AnyCodable(array.map(projectJSONValue))
+        case let number as NSNumber:
+            return projectFoundationJSONNumber(number)
         case let boolean as Bool:
             return AnyCodable(boolean)
         case let integer as Int:
@@ -2299,6 +2325,8 @@ private enum CanonicalBridgeGoldenScenarios {
             return AnyCodable(array.map { projectJSONValue($0.value) })
         case let array as [Any]:
             return AnyCodable(array.map(projectJSONValue))
+        case let number as NSNumber:
+            return projectFoundationJSONNumber(number)
         case let boolean as Bool:
             return AnyCodable(boolean)
         case let integer as Int:
@@ -2313,6 +2341,19 @@ private enum CanonicalBridgeGoldenScenarios {
             preconditionFailure("Unsupported bridge fixture JSON value: \(type(of: value))")
         }
     }
+}
+
+private func projectFoundationJSONNumber(_ number: NSNumber) -> AnyCodable {
+    if CFGetTypeID(number) == CFBooleanGetTypeID() {
+        return AnyCodable(number.boolValue)
+    }
+
+    let objectiveCType = String(cString: number.objCType)
+    if objectiveCType == "f" || objectiveCType == "d" {
+        return AnyCodable(number.doubleValue)
+    }
+
+    return AnyCodable(number.intValue)
 }
 
 /// Windows UI/daemon RPC exposes account metadata only. The secret-bearing
