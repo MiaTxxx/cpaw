@@ -51,6 +51,15 @@ extension CanonicalRequestGoldenScenarios {
             data: "AAAA",
             mediaType: nil
         )),
+        .document(CanonicalDocumentPart(
+            source: .unknown(AnyCodable([
+                "type": AnyCodable("future_document"),
+                "marker": AnyCodable(7),
+            ] as [String: AnyCodable]))
+        )),
+        .document(CanonicalDocumentPart(
+            source: .unknown(AnyCodable("future_document_scalar"))
+        )),
         .unknown(CanonicalUnknownPart(type: "future_part")),
     ]
 
@@ -104,6 +113,11 @@ extension CanonicalRequestGoldenScenarios {
             id: "toolu_invalid_scalar",
             name: "invalid_scalar",
             inputJSON: "42"
+        )),
+        .toolCall(CanonicalToolCall(
+            id: "toolu_invalid_json",
+            name: "invalid_json",
+            inputJSON: "{"
         )),
         .reasoning(CanonicalReasoningItem(summaryText: "Summary fallback")),
         .reasoning(CanonicalReasoningItem(fullText: "")),
@@ -216,4 +230,3 @@ struct CanonicalClaudeResponseBuilderGoldenOutput: Encodable {
     let payload: ClaudeMessageResponse
     let lossyNotes: [AnyCodable]
 }
-
