@@ -49,6 +49,12 @@
       "sha256" : "ebf0cef8f317e92005707da179bd948a749b088af208fa521e17cca605c1080b"
     },
     {
+      "id" : "canonical/response/openai-chat/rich-tool-loop",
+      "kind" : "json-transform",
+      "path" : "canonical/response/openai-chat/rich-tool-loop.json",
+      "sha256" : "de48f3a0ed32696673a80be0d5fed6af09c78377fdd237bdd000e2f6d3602fef"
+    },
+    {
       "id" : "contracts/account/account-credential-all-fields",
       "kind" : "json-transform",
       "path" : "contracts/account/account-credential-all-fields.json",

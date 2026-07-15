@@ -60,6 +60,24 @@ internal static class CanonicalGoldenTestSupport
         return JsonSerializer.SerializeToElement(value);
     }
 
+    internal static JsonElement Project(CanonicalResponse response)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["items"] = response.Items.Select(Project).ToArray(),
+            ["stop"] = Project(response.Stop),
+            ["rawExtensions"] = response.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "id", response.Id);
+        Add(value, "model", response.Model);
+        if (response.Usage is not null)
+        {
+            value["usage"] = Project(response.Usage);
+        }
+
+        return JsonSerializer.SerializeToElement(value);
+    }
+
     internal static void AssertJsonEquivalent(JsonElement expected, JsonElement actual, string path)
     {
         Assert.True(
@@ -292,6 +310,28 @@ internal static class CanonicalGoldenTestSupport
         Add(value, "filename", file.Filename);
         Add(value, "mimeType", file.MimeType);
         Add(value, "downloadable", file.Downloadable);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalStop stop)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["reason"] = stop.Reason.Value,
+        };
+        Add(value, "sequence", stop.Sequence);
+        return value;
+    }
+
+    private static Dictionary<string, object?> Project(CanonicalUsage usage)
+    {
+        var value = new Dictionary<string, object?>();
+        Add(value, "inputTokens", usage.InputTokens);
+        Add(value, "outputTokens", usage.OutputTokens);
+        Add(value, "totalTokens", usage.TotalTokens);
+        Add(value, "cacheCreationInputTokens", usage.CacheCreationInputTokens);
+        Add(value, "cacheReadInputTokens", usage.CacheReadInputTokens);
+        Add(value, "reasoningTokens", usage.ReasoningTokens);
         return value;
     }
 

@@ -135,6 +135,54 @@ public sealed record CanonicalRequest(
     ImmutableDictionary<string, JsonElement> Metadata,
     ImmutableArray<CanonicalVendorExtension> RawExtensions);
 
+public readonly record struct CanonicalStopReason
+{
+    private readonly string? _value;
+
+    public CanonicalStopReason(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
+    public string Value => _value ?? "unknown";
+
+    public static CanonicalStopReason EndTurn { get; } = new("end_turn");
+
+    public static CanonicalStopReason ToolUse { get; } = new("tool_use");
+
+    public static CanonicalStopReason MaxTokens { get; } = new("max_tokens");
+
+    public static CanonicalStopReason PauseTurn { get; } = new("pause_turn");
+
+    public static CanonicalStopReason Refusal { get; } = new("refusal");
+
+    public static CanonicalStopReason ModelContextWindowExceeded { get; } =
+        new("model_context_window_exceeded");
+
+    public static CanonicalStopReason Error { get; } = new("error");
+}
+
+public sealed record CanonicalStop(
+    CanonicalStopReason Reason,
+    string? Sequence);
+
+public sealed record CanonicalUsage(
+    long? InputTokens,
+    long? OutputTokens,
+    long? TotalTokens,
+    long? CacheCreationInputTokens,
+    long? CacheReadInputTokens,
+    long? ReasoningTokens);
+
+public sealed record CanonicalResponse(
+    string? Id,
+    string? Model,
+    ImmutableArray<CanonicalConversationItem> Items,
+    CanonicalStop Stop,
+    CanonicalUsage? Usage,
+    ImmutableArray<CanonicalVendorExtension> RawExtensions);
+
 public abstract record CanonicalConversationItem;
 
 public sealed record CanonicalMessage(

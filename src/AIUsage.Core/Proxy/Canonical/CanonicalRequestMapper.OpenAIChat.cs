@@ -28,7 +28,7 @@ public static partial class CanonicalRequestMapper
             []);
     }
 
-    private static (
+    internal static (
         ImmutableArray<CanonicalContentPart> System,
         ImmutableArray<CanonicalConversationItem> Items) MapOpenAIChatMessages(
             IReadOnlyList<OpenAIChatMessageWire> messages)
