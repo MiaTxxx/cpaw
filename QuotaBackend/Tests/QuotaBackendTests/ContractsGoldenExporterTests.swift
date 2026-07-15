@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 108)
+        XCTAssertEqual(cases.count, 109)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -304,6 +304,13 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalRequestGoldenScenarios.openAIChatRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIChatRequestMappingSeparatesSystemAndToolMessages",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/openai-chat/rich-tool-loop",
+                path: "canonical/response/openai-chat/rich-tool-loop.json",
+                input: openAIChatResponse,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeResponseBuilderMatchesDirectOpenAIToClaudeConverter",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIChatResponse
             ),
             .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/empty-defaults",
@@ -1577,6 +1584,11 @@ private enum CanonicalRequestGoldenScenarios {
         return project(canonical)
     }
 
+    static func mapOpenAIChatResponse(_ response: OpenAIChatCompletionResponse) throws -> AnyCodable {
+        let canonical = try CanonicalResponseMapper().mapOpenAIChatCompletions(response)
+        return project(canonical)
+    }
+
     private static func project(_ request: CanonicalRequest) -> AnyCodable {
         var value: [String: AnyCodable] = [
             "modelHint": AnyCodable(request.modelHint),
@@ -1590,6 +1602,37 @@ private enum CanonicalRequestGoldenScenarios {
         if let toolConfig = request.toolConfig {
             value["toolConfig"] = project(toolConfig)
         }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ response: CanonicalResponse) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "items": AnyCodable(response.items.map(project)),
+            "stop": project(response.stop),
+            "rawExtensions": AnyCodable(response.rawExtensions.map(project)),
+        ]
+        value["id"] = response.id.map { AnyCodable($0) }
+        value["model"] = response.model.map { AnyCodable($0) }
+        value["usage"] = response.usage.map(project)
+        return AnyCodable(value)
+    }
+
+    private static func project(_ stop: CanonicalStop) -> AnyCodable {
+        var value: [String: AnyCodable] = [
+            "reason": AnyCodable(stop.reason.value),
+        ]
+        value["sequence"] = stop.sequence.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ usage: CanonicalUsage) -> AnyCodable {
+        var value: [String: AnyCodable] = [:]
+        value["inputTokens"] = usage.inputTokens.map { AnyCodable($0) }
+        value["outputTokens"] = usage.outputTokens.map { AnyCodable($0) }
+        value["totalTokens"] = usage.totalTokens.map { AnyCodable($0) }
+        value["cacheCreationInputTokens"] = usage.cacheCreationInputTokens.map { AnyCodable($0) }
+        value["cacheReadInputTokens"] = usage.cacheReadInputTokens.map { AnyCodable($0) }
+        value["reasoningTokens"] = usage.reasoningTokens.map { AnyCodable($0) }
         return AnyCodable(value)
     }
 
