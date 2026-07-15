@@ -53,9 +53,9 @@ extension CanonicalRequestGoldenScenarios {
         )),
         .document(CanonicalDocumentPart(
             source: .unknown(AnyCodable([
-                "type": AnyCodable("future_document"),
-                "marker": AnyCodable(7),
-            ] as [String: AnyCodable]))
+                "type": "future_document",
+                "marker": 7,
+            ] as [String: Any]))
         )),
         .document(CanonicalDocumentPart(
             source: .unknown(AnyCodable("future_document_scalar"))
