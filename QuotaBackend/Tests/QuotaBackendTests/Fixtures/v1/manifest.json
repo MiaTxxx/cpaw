@@ -70,7 +70,7 @@
       "id" : "canonical/response/openai-responses/hosted-call-id-matrix",
       "kind" : "json-transform",
       "path" : "canonical/response/openai-responses/hosted-call-id-matrix.json",
-      "sha256" : "aeadc170a0d0ec286124bd89f5841c023e50b06947f72eea7e733543898c578f"
+      "sha256" : "bfb4a8e0db045a82de5308c4c472a80f841a3e0219950220c84d8f688982df98"
     },
     {
       "id" : "canonical/response/openai-responses/mixed-tool-loop",
