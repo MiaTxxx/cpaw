@@ -1486,6 +1486,15 @@ private enum CanonicalRequestGoldenScenarios {
                     .text(OpenAITextPart(text: "Assistant fixture")),
                 ]),
                 name: "fixture-assistant",
+                toolCalls: [
+                    OpenAIToolCall(
+                        id: "call_ordered",
+                        function: OpenAIFunctionCall(
+                            name: "ordered_tool",
+                            arguments: "{\"order\":true}"
+                        )
+                    ),
+                ],
                 reasoningContent: "Reasoning fixture"
             ),
             OpenAIChatMessage(
