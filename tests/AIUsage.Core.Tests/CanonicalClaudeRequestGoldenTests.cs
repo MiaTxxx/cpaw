@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AIUsage.Core.Proxy.Canonical;
 using AIUsage.Core.Proxy.Protocols;
 using AIUsage.Core.Proxy.Protocols.Anthropic;
@@ -14,7 +13,11 @@ public sealed class CanonicalClaudeRequestGoldenTests
     [InlineData("empty-defaults.json")]
     public void Claude_request_matches_swift_canonical_projection(string fileName)
     {
-        using var fixture = ReadFixture(fileName);
+        using var fixture = CanonicalGoldenTestSupport.ReadFixture(
+            "canonical",
+            "request",
+            "claude",
+            fileName);
         var root = fixture.RootElement;
         var request = WireJson.Deserialize<ClaudeMessageRequestWire>(root.GetProperty("input"));
 
@@ -25,30 +28,5 @@ public sealed class CanonicalClaudeRequestGoldenTests
             root.GetProperty("expected"),
             projected,
             "$");
-    }
-
-    private static JsonDocument ReadFixture(string fileName) =>
-        JsonDocument.Parse(File.ReadAllBytes(GetFixturePath(fileName)));
-
-    private static string GetFixturePath(string fileName)
-    {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null && !File.Exists(Path.Combine(current.FullName, "AIUsage.Windows.sln")))
-        {
-            current = current.Parent;
-        }
-
-        Assert.NotNull(current);
-        return Path.Combine(
-            current.FullName,
-            "QuotaBackend",
-            "Tests",
-            "QuotaBackendTests",
-            "Fixtures",
-            "v1",
-            "canonical",
-            "request",
-            "claude",
-            fileName);
     }
 }

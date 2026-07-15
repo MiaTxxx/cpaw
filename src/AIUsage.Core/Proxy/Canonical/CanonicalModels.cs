@@ -210,6 +210,14 @@ public sealed record CanonicalDocumentPart(
     ImmutableArray<CanonicalVendorExtension> RawExtensions)
     : CanonicalContentPart(RawExtensions);
 
+public sealed record CanonicalFileReferencePart(
+    string? FileId,
+    string? Filename,
+    string? MimeType,
+    bool? Downloadable,
+    ImmutableArray<CanonicalVendorExtension> RawExtensions)
+    : CanonicalContentPart(RawExtensions);
+
 public sealed record CanonicalReasoningTextPart(
     string Text,
     ImmutableArray<CanonicalVendorExtension> RawExtensions)

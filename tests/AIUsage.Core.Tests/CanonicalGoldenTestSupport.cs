@@ -7,6 +7,31 @@ namespace AIUsage.Core.Tests;
 
 internal static class CanonicalGoldenTestSupport
 {
+    internal static JsonDocument ReadFixture(params string[] relativePath)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "AIUsage.Windows.sln")))
+        {
+            current = current.Parent;
+        }
+
+        if (current is null)
+        {
+            throw new Xunit.Sdk.XunitException("Could not locate the AIUsage solution root.");
+        }
+
+        var path = new[]
+        {
+            current.FullName,
+            "QuotaBackend",
+            "Tests",
+            "QuotaBackendTests",
+            "Fixtures",
+            "v1",
+        }.Concat(relativePath).ToArray();
+        return JsonDocument.Parse(File.ReadAllBytes(Path.Combine(path)));
+    }
+
     internal static JsonElement Project(
         CanonicalBuildResult<OpenAIChatCompletionRequestWire> result) =>
         JsonSerializer.SerializeToElement(new Dictionary<string, object?>
@@ -244,6 +269,7 @@ internal static class CanonicalGoldenTestSupport
             },
             CanonicalImagePart image => Project(image),
             CanonicalDocumentPart document => Project(document),
+            CanonicalFileReferencePart file => Project(file),
             CanonicalReasoningTextPart reasoning => new()
             {
                 ["type"] = "reasoning_text",
@@ -254,6 +280,20 @@ internal static class CanonicalGoldenTestSupport
             _ => throw new Xunit.Sdk.XunitException(
                 $"Unsupported canonical content part {part.GetType().Name}."),
         };
+
+    private static Dictionary<string, object?> Project(CanonicalFileReferencePart file)
+    {
+        var value = new Dictionary<string, object?>
+        {
+            ["type"] = "file_ref",
+            ["rawExtensions"] = file.RawExtensions.Select(Project).ToArray(),
+        };
+        Add(value, "fileID", file.FileId);
+        Add(value, "filename", file.Filename);
+        Add(value, "mimeType", file.MimeType);
+        Add(value, "downloadable", file.Downloadable);
+        return value;
+    }
 
     private static Dictionary<string, object?> Project(CanonicalImagePart image)
     {

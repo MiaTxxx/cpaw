@@ -5,7 +5,7 @@ using AIUsage.Core.Proxy.Protocols.Anthropic;
 
 namespace AIUsage.Core.Proxy.Canonical;
 
-public static class CanonicalRequestMapper
+public static partial class CanonicalRequestMapper
 {
     public static CanonicalRequest FromClaude(ClaudeMessageRequestWire request)
     {
