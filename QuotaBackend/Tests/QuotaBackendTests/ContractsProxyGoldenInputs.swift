@@ -798,6 +798,105 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let codexResponsesCanonicalVariantsResponseJSON = #"""
+    {
+      "id": "resp_fixture_canonical_variants_001",
+      "object": "response",
+      "created_at": 1893553445,
+      "model": "gpt-fixture-codex-variants",
+      "output": [
+        {
+          "id": "msg_fixture_variants_001",
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "phase": "commentary",
+          "content": [
+            { "type": "output_text", "text": "Working on the hosted tool." },
+            { "type": "refusal", "refusal": null },
+            { "type": "future_output_content", "marker": "discarded-by-wire-model" }
+          ]
+        },
+        {
+          "id": "cmp_fixture_variants_001",
+          "type": "compaction",
+          "encrypted_content": "<fixture-compaction>"
+        },
+        {
+          "id": "fc_fixture_variants_001",
+          "type": "function_call",
+          "call_id": "call_fixture_variants_in_progress",
+          "name": "inspect_fixture",
+          "arguments": "{\"path\":\"fixture.txt\"}",
+          "status": "in_progress"
+        },
+        {
+          "id": "fc_fixture_variants_002",
+          "type": "function_call",
+          "call_id": "call_fixture_variants_future",
+          "name": "future_fixture",
+          "arguments": "",
+          "status": "FUTURE_STATE"
+        },
+        {
+          "id": "fco_fixture_variants_001",
+          "type": "function_call_output",
+          "call_id": "call_fixture_empty_output",
+          "output": "",
+          "status": "completed"
+        },
+        {
+          "id": "fco_fixture_variants_002",
+          "type": "function_call_output",
+          "call_id": "call_fixture_content_output",
+          "output": [
+            { "type": "input_text", "text": "tool input text" },
+            {
+              "type": "input_image",
+              "file_id": "file_fixture_image_001",
+              "image_url": "https://example.test/ignored.png",
+              "detail": "high"
+            },
+            {
+              "type": "input_file",
+              "file_id": "file_fixture_document_001",
+              "filename": "fixture.txt",
+              "file_url": "https://example.test/ignored.txt"
+            },
+            { "type": "output_text", "text": "tool output text" }
+          ],
+          "status": "completed"
+        },
+        {
+          "id": "fs_fixture_variants_001",
+          "type": "file_search_call",
+          "queries": ["fixture quota"],
+          "status": "in_progress"
+        },
+        {
+          "id": "ws_fixture_variants_001",
+          "type": "web_search_call",
+          "status": "completed",
+          "action": {
+            "type": "search",
+            "query": "fixture docs"
+          }
+        },
+        {
+          "type": "future_hosted_tool_event",
+          "marker": "discarded-by-wire-model"
+        }
+      ],
+      "status": "incomplete",
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 3,
+        "total_tokens": 13,
+        "input_tokens_details": { "cached_tokens": 20 }
+      }
+    }
+    """#
+
     static let codexResponsesCompletedEventJSON = #"""
     {
       "type": "response.completed",

@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 110)
+        XCTAssertEqual(cases.count, 112)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -225,6 +225,10 @@ private enum ContractsV1GoldenCatalog {
             OpenAIResponsesResponse.self,
             from: ContractsProxyGoldenInputs.codexResponsesResponseJSON
         )
+        let codexResponsesCanonicalVariantsResponse = try decode(
+            OpenAIResponsesResponse.self,
+            from: ContractsProxyGoldenInputs.codexResponsesCanonicalVariantsResponseJSON
+        )
         let codexResponsesCompleted = try decode(
             OpenAIResponsesCompletedEvent.self,
             from: ContractsProxyGoldenInputs.codexResponsesCompletedEventJSON
@@ -318,6 +322,20 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalRequestGoldenScenarios.openAIChatResponseRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeResponseBuilderMatchesDirectOpenAIToClaudeConverter",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIChatResponse
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/openai-responses/content-hosted-variants",
+                path: "canonical/response/openai-responses/content-hosted-variants.json",
+                input: codexResponsesCanonicalVariantsResponse,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIResponsesResponse
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/openai-responses/mixed-tool-loop",
+                path: "canonical/response/openai-responses/mixed-tool-loop.json",
+                input: codexResponsesResponse,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIResponsesResponse
             ),
             .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/empty-defaults",
@@ -1708,6 +1726,11 @@ private enum CanonicalRequestGoldenScenarios {
 
     static func mapOpenAIChatResponse(_ response: OpenAIChatCompletionResponse) throws -> AnyCodable {
         let canonical = try CanonicalResponseMapper().mapOpenAIChatCompletions(response)
+        return project(canonical)
+    }
+
+    static func mapOpenAIResponsesResponse(_ response: OpenAIResponsesResponse) throws -> AnyCodable {
+        let canonical = try CanonicalResponseMapper().mapOpenAIResponses(response)
         return project(canonical)
     }
 
