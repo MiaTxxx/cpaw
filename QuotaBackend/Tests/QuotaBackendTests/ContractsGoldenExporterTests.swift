@@ -7,7 +7,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 119)
+        XCTAssertEqual(cases.count, 121)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -396,6 +396,20 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalStreamGoldenScenarios.boundaryEvents,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalStreamGoldenScenarios.mapClaude
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/claude-builder/rich-lifecycle",
+                path: "canonical/stream/claude-builder/rich-lifecycle.json",
+                input: CanonicalStreamGoldenScenarios.claudeBuilderRichLifecycle,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalStreamGoldenScenarios.buildClaude
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/claude-builder/boundary-events",
+                path: "canonical/stream/claude-builder/boundary-events.json",
+                input: CanonicalStreamGoldenScenarios.claudeBuilderBoundaryEvents,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalStreamGoldenScenarios.buildClaude
             ),
             .behaviorTransform(
                 id: "canonical/stream/openai-upstream/lifecycle-switches",
@@ -2374,6 +2388,213 @@ private enum CanonicalStreamGoldenScenarios {
         .messageStop,
     ])
 
+    static let claudeBuilderRichLifecycle = builderInput([
+        .messageStarted(CanonicalStreamMessageStarted(
+            role: .assistant,
+            messageID: "msg_fixture_claude_builder_001",
+            model: "claude-fixture-builder"
+        )),
+        .contentPartStarted(CanonicalStreamContentPartStarted(
+            index: 0,
+            kind: .text
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 0,
+            kind: .text,
+            textDelta: "Hello builder"
+        )),
+        .contentPartStopped(CanonicalStreamContentPartStopped(index: 0)),
+        .contentPartStarted(CanonicalStreamContentPartStarted(
+            index: 1,
+            kind: .reasoning
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 1,
+            kind: .reasoning,
+            textDelta: "Reasoning builder"
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 1,
+            kind: .reasoning,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "signature_delta",
+                value: AnyCodable("<fixture-builder-signature>")
+            )]
+        )),
+        .contentPartStopped(CanonicalStreamContentPartStopped(index: 1)),
+        .contentPartStarted(CanonicalStreamContentPartStarted(
+            index: 2,
+            kind: .toolCall,
+            toolCallID: "toolu_fixture_builder_001",
+            toolName: "lookup"
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 2,
+            kind: .toolCall,
+            jsonDelta: #"{"query":"fixture"}"#
+        )),
+        .contentPartStopped(CanonicalStreamContentPartStopped(index: 2)),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .toolUse, sequence: "<fixture-builder-stop>"),
+            usage: CanonicalUsage(
+                inputTokens: 99,
+                outputTokens: 4_294_967_296,
+                totalTokens: 4_294_967_395,
+                cacheCreationInputTokens: 7,
+                cacheReadInputTokens: 8,
+                reasoningTokens: 9
+            )
+        )),
+        .messageStopped,
+    ])
+
+    static let claudeBuilderBoundaryEvents = builderInput([
+        .messageStarted(CanonicalStreamMessageStarted(
+            role: .unknown("future_role"),
+            messageID: "msg_fixture_claude_builder_boundary",
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "fixture",
+                key: "ignored",
+                value: AnyCodable(true)
+            )]
+        )),
+        .contentPartStarted(CanonicalStreamContentPartStarted(
+            index: 3,
+            kind: .toolCall
+        )),
+        .contentPartStarted(CanonicalStreamContentPartStarted(
+            index: 4,
+            kind: .unknown("image")
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 3,
+            kind: .toolCall,
+            textDelta: "drop-tool-text",
+            jsonDelta: #"{"also":"drop"}"#
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 4,
+            kind: .unknown("image"),
+            textDelta: "drop-unknown-text"
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 0,
+            kind: .text,
+            textDelta: "",
+            jsonDelta: "also-drop-json"
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 1,
+            kind: .text,
+            jsonDelta: ""
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 2,
+            kind: .unknown("future"),
+            jsonDelta: #"{"future":1}"#
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .reasoning,
+            textDelta: "thinking-wins",
+            jsonDelta: "json-loses",
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "signature_delta",
+                value: AnyCodable("signature-loses")
+            )]
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .reasoning,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "signature_delta",
+                value: AnyCodable("signature-only")
+            )]
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .unknown("reasoning"),
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "signature_delta",
+                value: AnyCodable("unknown-reasoning-signature")
+            )]
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .reasoning,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "other",
+                key: "signature_delta",
+                value: AnyCodable("wrong-vendor")
+            )]
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .reasoning,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "wrong_key",
+                value: AnyCodable("wrong-key")
+            )]
+        )),
+        .contentPartDelta(CanonicalStreamContentPartDelta(
+            index: 5,
+            kind: .reasoning,
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "claude",
+                key: "signature_delta",
+                value: AnyCodable(7)
+            )]
+        )),
+        .contentPartStopped(CanonicalStreamContentPartStopped(index: 3)),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .endTurn),
+            usage: CanonicalUsage(outputTokens: 1)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .toolUse),
+            usage: CanonicalUsage(outputTokens: 2)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .maxTokens),
+            usage: CanonicalUsage(outputTokens: 3)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .pauseTurn),
+            usage: CanonicalUsage(outputTokens: 4)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .refusal),
+            usage: CanonicalUsage(outputTokens: 5)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .modelContextWindowExceeded),
+            usage: CanonicalUsage(outputTokens: 6)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .error),
+            usage: CanonicalUsage(outputTokens: 7)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta(
+            stop: CanonicalStop(reason: .unknown("future_stop")),
+            usage: CanonicalUsage(outputTokens: 8)
+        )),
+        .messageDelta(CanonicalStreamMessageDelta()),
+        .error(CanonicalStreamError(
+            message: "fixture builder error",
+            rawExtensions: [CanonicalVendorExtension(
+                vendor: "fixture",
+                key: "ignored",
+                value: AnyCodable("ignored")
+            )]
+        )),
+        .messageStopped,
+    ])
+
     static let openAIUpstreamLifecycleSwitches = CanonicalOpenAIUpstreamStreamGoldenInput(
         sequences: [
             CanonicalOpenAIUpstreamStreamGoldenSequence(
@@ -2471,6 +2692,26 @@ private enum CanonicalStreamGoldenScenarios {
         return AnyCodable([
             "events": AnyCodable(input.events.flatMap { mapper.map($0.event) }.map(project)),
         ] as [String: AnyCodable])
+    }
+
+    static func buildClaude(
+        _ input: CanonicalClaudeStreamBuilderGoldenInput
+    ) -> CanonicalClaudeStreamBuilderGoldenOutput {
+        let builder = CanonicalClaudeStreamBuilder()
+        return CanonicalClaudeStreamBuilderGoldenOutput(
+            events: input.runtimeEvents
+                .flatMap { builder.build(event: $0) }
+                .map(EncodableClaudeStreamEvent.init)
+        )
+    }
+
+    private static func builderInput(
+        _ events: [CanonicalStreamEvent]
+    ) -> CanonicalClaudeStreamBuilderGoldenInput {
+        CanonicalClaudeStreamBuilderGoldenInput(
+            runtimeEvents: events,
+            projectedEvents: events.map(project)
+        )
     }
 
     static func mapOpenAIUpstream(
@@ -2619,6 +2860,24 @@ private struct CanonicalClaudeStreamGoldenInput: Encodable {
     let events: [EncodableClaudeStreamEvent]
 }
 
+private struct CanonicalClaudeStreamBuilderGoldenInput: Encodable {
+    let runtimeEvents: [CanonicalStreamEvent]
+    let projectedEvents: [AnyCodable]
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(projectedEvents, forKey: .events)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case events
+    }
+}
+
+private struct CanonicalClaudeStreamBuilderGoldenOutput: Encodable {
+    let events: [EncodableClaudeStreamEvent]
+}
+
 private struct CanonicalOpenAIUpstreamStreamGoldenInput: Encodable {
     let sequences: [CanonicalOpenAIUpstreamStreamGoldenSequence]
 }
@@ -2689,6 +2948,18 @@ private enum EncodableClaudeStreamEvent: Encodable {
     case messageDelta(ClaudeMessageDeltaEvent)
     case messageStop
     case ping
+
+    init(_ event: ClaudeStreamEvent) {
+        switch event {
+        case .messageStart(let event): self = .messageStart(event)
+        case .contentBlockStart(let event): self = .contentBlockStart(event)
+        case .contentBlockDelta(let event): self = .contentBlockDelta(event)
+        case .contentBlockStop(let event): self = .contentBlockStop(event)
+        case .messageDelta(let event): self = .messageDelta(event)
+        case .messageStop: self = .messageStop
+        case .ping: self = .ping
+        }
+    }
 
     var event: ClaudeStreamEvent {
         switch self {
