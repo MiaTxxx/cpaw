@@ -1823,6 +1823,14 @@ private enum CanonicalRequestGoldenScenarios {
         )
     )
 
+    private static let claudeBuilderNestedDocumentParts: [CanonicalContentPart] = [
+        .text(CanonicalTextPart(text: "Part A")),
+        .document(CanonicalDocumentPart(
+            source: .inlineText("Part B")
+        )),
+        .text(CanonicalTextPart(text: "")),
+    ]
+
     static let claudeBuilderRichContent = builderInput(
         response: CanonicalResponse(
             id: "msg_fixture_claude_builder_response_001",
@@ -1846,13 +1854,7 @@ private enum CanonicalRequestGoldenScenarios {
                             ] as [String: AnyCodable])
                         )),
                         .document(CanonicalDocumentPart(
-                            source: .contentParts([
-                                .text(CanonicalTextPart(text: "Part A")),
-                                .document(CanonicalDocumentPart(
-                                    source: .inlineText("Part B")
-                                )),
-                                .text(CanonicalTextPart(text: "")),
-                            ])
+                            source: .contentParts(claudeBuilderNestedDocumentParts)
                         )),
                         .document(CanonicalDocumentPart(
                             source: .url("https://example.test/fixture.pdf")
