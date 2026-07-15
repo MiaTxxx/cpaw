@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AIUsage.Core.Proxy.Canonical;
+using AIUsage.Core.Proxy.Protocols.Anthropic;
 using AIUsage.Core.Proxy.Protocols.OpenAIChat;
 using Xunit;
 
@@ -34,6 +35,14 @@ internal static class CanonicalGoldenTestSupport
 
     internal static JsonElement Project(
         CanonicalBuildResult<OpenAIChatCompletionRequestWire> result) =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["payload"] = JsonSerializer.SerializeToElement(result.Payload),
+            ["lossyNotes"] = result.LossyNotes.Select(Project).ToArray(),
+        });
+
+    internal static JsonElement Project(
+        CanonicalBuildResult<ClaudeMessageResponseWire> result) =>
         JsonSerializer.SerializeToElement(new Dictionary<string, object?>
         {
             ["payload"] = JsonSerializer.SerializeToElement(result.Payload),
