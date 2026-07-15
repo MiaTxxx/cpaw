@@ -49,6 +49,18 @@
       "sha256" : "ebf0cef8f317e92005707da179bd948a749b088af208fa521e17cca605c1080b"
     },
     {
+      "id" : "canonical/response/claude-builder/boundary-lossy",
+      "kind" : "json-transform",
+      "path" : "canonical/response/claude-builder/boundary-lossy.json",
+      "sha256" : "f574c3c1a9c228461757c541795fc692977f514ac895543867fb6c2d69bb974f"
+    },
+    {
+      "id" : "canonical/response/claude-builder/rich-content",
+      "kind" : "json-transform",
+      "path" : "canonical/response/claude-builder/rich-content.json",
+      "sha256" : "8913fdbeb485f3506c0be72084b4a07f869c5739b3c0115643fb6fc1a5939068"
+    },
+    {
       "id" : "canonical/response/claude/mixed-blocks",
       "kind" : "json-transform",
       "path" : "canonical/response/claude/mixed-blocks.json",
