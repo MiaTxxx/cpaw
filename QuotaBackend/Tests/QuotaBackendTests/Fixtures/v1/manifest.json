@@ -67,10 +67,22 @@
       "sha256" : "450e2ee7e93c0689c0f3226f134c20b3cb06b1eb44b19efdd85df6412c542c52"
     },
     {
+      "id" : "canonical/response/openai-responses/hosted-call-id-matrix",
+      "kind" : "json-transform",
+      "path" : "canonical/response/openai-responses/hosted-call-id-matrix.json",
+      "sha256" : "aeadc170a0d0ec286124bd89f5841c023e50b06947f72eea7e733543898c578f"
+    },
+    {
       "id" : "canonical/response/openai-responses/mixed-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/response/openai-responses/mixed-tool-loop.json",
       "sha256" : "9b6e529e7d780289b3475ecb248d1d373a787fd291ffcdfbf01e6e83b158751c"
+    },
+    {
+      "id" : "canonical/response/openai-responses/stop-priority-matrix",
+      "kind" : "json-transform",
+      "path" : "canonical/response/openai-responses/stop-priority-matrix.json",
+      "sha256" : "24544a4d0d33bd6a9e1c027e0fdeaa7d5adbe77e15e63fd99448df36968ea6b7"
     },
     {
       "id" : "contracts/account/account-credential-all-fields",
