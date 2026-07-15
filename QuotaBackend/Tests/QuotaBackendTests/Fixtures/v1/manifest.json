@@ -52,7 +52,7 @@
       "id" : "canonical/response/openai-chat/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/response/openai-chat/rich-tool-loop.json",
-      "sha256" : "de48f3a0ed32696673a80be0d5fed6af09c78377fdd237bdd000e2f6d3602fef"
+      "sha256" : "05c3ac6f79a9a078ad063d5ad7f35a60eb5de8d154acf9722687eaf07f833418"
     },
     {
       "id" : "contracts/account/account-credential-all-fields",
