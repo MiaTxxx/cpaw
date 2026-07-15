@@ -7,7 +7,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 114)
+        XCTAssertEqual(cases.count, 116)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -382,6 +382,20 @@ private enum ContractsV1GoldenCatalog {
                 input: codexResponsesStopPriorityMatrix,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIResponsesStopPriorityMatrix
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/claude/rich-lifecycle",
+                path: "canonical/stream/claude/rich-lifecycle.json",
+                input: CanonicalStreamGoldenScenarios.richLifecycle,
+                sourceTest: "CanonicalMiddleLayerTests.testCanonicalClaudeStreamMapperPreservesIndicesAndStopReason",
+                transform: CanonicalStreamGoldenScenarios.mapClaude
+            ),
+            .behaviorTransform(
+                id: "canonical/stream/claude/boundary-events",
+                path: "canonical/stream/claude/boundary-events.json",
+                input: CanonicalStreamGoldenScenarios.boundaryEvents,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalStreamGoldenScenarios.mapClaude
             ),
             .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/empty-defaults",
@@ -2200,6 +2214,292 @@ private enum CanonicalRequestGoldenScenarios {
         case .unknown(let raw): return raw
         }
     }
+}
+
+private enum CanonicalStreamGoldenScenarios {
+    static let richLifecycle = CanonicalClaudeStreamGoldenInput(events: [
+        .messageStart(ClaudeMessageStartEvent(message: ClaudeMessageStart(
+            id: "msg_fixture_canonical_stream_001",
+            type: "message",
+            role: "assistant",
+            content: [.text(ClaudeTextBlock(text: "ignored prefilled content"))],
+            model: "claude-fixture-stream-1",
+            stopReason: "ignored_start_stop",
+            stopSequence: "<ignored-start-sequence>",
+            usage: ClaudeUsage(inputTokens: 4_294_967_296, outputTokens: 99)
+        ))),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 0,
+            contentBlock: .text(ClaudeTextBlock(text: ""))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 0,
+            delta: .text(ClaudeTextDelta(type: "text_delta", text: "Hello Windows"))
+        )),
+        .contentBlockStop(ClaudeContentBlockStopEvent(index: 0)),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 2,
+            contentBlock: .thinking(ClaudeThinkingBlock(
+                thinking: "",
+                signature: "<fixture-thinking-start-signature>"
+            ))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 2,
+            delta: .thinking(ClaudeThinkingDelta(thinking: "Reasoning fixture"))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 2,
+            delta: .signature(ClaudeSignatureDelta(signature: "<fixture-signature-delta>"))
+        )),
+        .contentBlockStop(ClaudeContentBlockStopEvent(index: 2)),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 5,
+            contentBlock: .toolUse(ClaudeToolUseBlock(
+                id: "toolu_fixture_canonical_stream_001",
+                name: "lookup_fixture",
+                input: [:]
+            ))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 5,
+            delta: .inputJson(ClaudeInputJsonDelta(
+                type: "input_json_delta",
+                partialJson: "{\"query\":\"fixture"
+            ))
+        )),
+        .contentBlockStop(ClaudeContentBlockStopEvent(index: 5)),
+        .messageDelta(ClaudeMessageDeltaEvent(
+            delta: ClaudeMessageDeltaContent(
+                stopReason: "pause_turn",
+                stopSequence: "<fixture-stop>"
+            ),
+            usage: ClaudeUsageDelta(outputTokens: 4_294_967_296)
+        )),
+        .ping,
+        .messageStop,
+    ])
+
+    static let boundaryEvents = CanonicalClaudeStreamGoldenInput(events: [
+        .messageStart(ClaudeMessageStartEvent(message: ClaudeMessageStart(
+            id: "msg_fixture_canonical_stream_boundary",
+            type: "message",
+            role: "future_role",
+            model: "claude-fixture-stream-boundary"
+        ))),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 4,
+            contentBlock: .redactedThinking(ClaudeRedactedThinkingBlock(data: "<fixture-redacted>"))
+        )),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 8,
+            contentBlock: .image(ClaudeImageBlock(source: ClaudeImageSource(
+                type: "base64",
+                mediaType: "image/png",
+                data: "Zml4dHVyZQ=="
+            )))
+        )),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 9,
+            contentBlock: .document(ClaudeDocumentBlock(source: [
+                "type": AnyCodable("url"),
+                "url": AnyCodable("https://example.test/fixture.pdf"),
+            ]))
+        )),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 10,
+            contentBlock: .toolResult(ClaudeToolResultBlock(
+                toolUseId: "toolu_fixture_boundary",
+                content: "fixture result"
+            ))
+        )),
+        .contentBlockStart(ClaudeContentBlockStartEvent(
+            index: 11,
+            contentBlock: .unknown(ClaudeUnknownContentBlock(
+                type: "future_block",
+                payload: [
+                    "type": AnyCodable("future_block"),
+                    "future": AnyCodable(true),
+                ]
+            ))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 12,
+            delta: .citations(ClaudeCitationsDelta(citation: AnyCodable([
+                "type": AnyCodable("char_location"),
+                "start_char_index": AnyCodable(1),
+                "end_char_index": AnyCodable(7),
+            ])))
+        )),
+        .contentBlockDelta(ClaudeContentBlockDeltaEvent(
+            index: 13,
+            delta: .unknown(ClaudeUnknownDelta(type: "future_delta"))
+        )),
+        messageDelta(stopReason: "end_turn", outputTokens: 1),
+        messageDelta(stopReason: "stop", outputTokens: 2),
+        messageDelta(stopReason: "tool_use", outputTokens: 3),
+        messageDelta(stopReason: "max_tokens", outputTokens: 4),
+        messageDelta(stopReason: "pause_turn", outputTokens: 5),
+        messageDelta(stopReason: "refusal", outputTokens: 6),
+        messageDelta(stopReason: "model_context_window_exceeded", outputTokens: 7),
+        messageDelta(stopReason: "future_stop", outputTokens: 8),
+        .messageDelta(ClaudeMessageDeltaEvent(
+            delta: ClaudeMessageDeltaContent(
+                stopReason: nil,
+                stopSequence: "<ignored-without-stop-reason>"
+            ),
+            usage: ClaudeUsageDelta(outputTokens: 9)
+        )),
+        .messageStop,
+    ])
+
+    static func mapClaude(_ input: CanonicalClaudeStreamGoldenInput) -> AnyCodable {
+        let mapper = CanonicalClaudeStreamMapper()
+        return AnyCodable([
+            "events": AnyCodable(input.events.flatMap { mapper.map($0.event) }.map(project)),
+        ] as [String: AnyCodable])
+    }
+
+    private static func messageDelta(
+        stopReason: String,
+        outputTokens: Int
+    ) -> EncodableClaudeStreamEvent {
+        .messageDelta(ClaudeMessageDeltaEvent(
+            delta: ClaudeMessageDeltaContent(
+                stopReason: stopReason,
+                stopSequence: "<fixture-\(stopReason)>"
+            ),
+            usage: ClaudeUsageDelta(outputTokens: outputTokens)
+        ))
+    }
+
+    private static func project(_ event: CanonicalStreamEvent) -> AnyCodable {
+        switch event {
+        case .messageStarted(let started):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("message_started"),
+                "role": AnyCodable(started.role.value),
+                "rawExtensions": AnyCodable(started.rawExtensions.map(project)),
+            ]
+            value["messageID"] = started.messageID.map { AnyCodable($0) }
+            value["model"] = started.model.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .contentPartStarted(let started):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("content_part_started"),
+                "index": AnyCodable(started.index),
+                "kind": AnyCodable(started.kind.value),
+                "rawExtensions": AnyCodable(started.rawExtensions.map(project)),
+            ]
+            value["toolCallID"] = started.toolCallID.map { AnyCodable($0) }
+            value["toolName"] = started.toolName.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .contentPartDelta(let delta):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("content_part_delta"),
+                "index": AnyCodable(delta.index),
+                "kind": AnyCodable(delta.kind.value),
+                "rawExtensions": AnyCodable(delta.rawExtensions.map(project)),
+            ]
+            value["textDelta"] = delta.textDelta.map { AnyCodable($0) }
+            value["jsonDelta"] = delta.jsonDelta.map { AnyCodable($0) }
+            return AnyCodable(value)
+
+        case .contentPartStopped(let stopped):
+            return AnyCodable([
+                "type": AnyCodable("content_part_stopped"),
+                "index": AnyCodable(stopped.index),
+            ] as [String: AnyCodable])
+
+        case .messageDelta(let delta):
+            var value: [String: AnyCodable] = [
+                "type": AnyCodable("message_delta"),
+                "rawExtensions": AnyCodable(delta.rawExtensions.map(project)),
+            ]
+            value["stop"] = delta.stop.map(project)
+            value["usage"] = delta.usage.map(project)
+            return AnyCodable(value)
+
+        case .messageStopped:
+            return AnyCodable(["type": AnyCodable("message_stopped")] as [String: AnyCodable])
+
+        case .error(let error):
+            return AnyCodable([
+                "type": AnyCodable("error"),
+                "message": AnyCodable(error.message),
+                "rawExtensions": AnyCodable(error.rawExtensions.map(project)),
+            ] as [String: AnyCodable])
+        }
+    }
+
+    private static func project(_ stop: CanonicalStop) -> AnyCodable {
+        var value: [String: AnyCodable] = ["reason": AnyCodable(stop.reason.value)]
+        value["sequence"] = stop.sequence.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ usage: CanonicalUsage) -> AnyCodable {
+        var value: [String: AnyCodable] = [:]
+        value["inputTokens"] = usage.inputTokens.map { AnyCodable($0) }
+        value["outputTokens"] = usage.outputTokens.map { AnyCodable($0) }
+        value["totalTokens"] = usage.totalTokens.map { AnyCodable($0) }
+        value["cacheCreationInputTokens"] = usage.cacheCreationInputTokens.map { AnyCodable($0) }
+        value["cacheReadInputTokens"] = usage.cacheReadInputTokens.map { AnyCodable($0) }
+        value["reasoningTokens"] = usage.reasoningTokens.map { AnyCodable($0) }
+        return AnyCodable(value)
+    }
+
+    private static func project(_ extensionValue: CanonicalVendorExtension) -> AnyCodable {
+        AnyCodable([
+            "vendor": AnyCodable(extensionValue.vendor),
+            "key": AnyCodable(extensionValue.key),
+            "value": extensionValue.value,
+        ] as [String: AnyCodable])
+    }
+}
+
+private struct CanonicalClaudeStreamGoldenInput: Encodable {
+    let events: [EncodableClaudeStreamEvent]
+}
+
+private enum EncodableClaudeStreamEvent: Encodable {
+    case messageStart(ClaudeMessageStartEvent)
+    case contentBlockStart(ClaudeContentBlockStartEvent)
+    case contentBlockDelta(ClaudeContentBlockDeltaEvent)
+    case contentBlockStop(ClaudeContentBlockStopEvent)
+    case messageDelta(ClaudeMessageDeltaEvent)
+    case messageStop
+    case ping
+
+    var event: ClaudeStreamEvent {
+        switch self {
+        case .messageStart(let event): return .messageStart(event)
+        case .contentBlockStart(let event): return .contentBlockStart(event)
+        case .contentBlockDelta(let event): return .contentBlockDelta(event)
+        case .contentBlockStop(let event): return .contentBlockStop(event)
+        case .messageDelta(let event): return .messageDelta(event)
+        case .messageStop: return .messageStop
+        case .ping: return .ping
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case .messageStart(let event): try event.encode(to: encoder)
+        case .contentBlockStart(let event): try event.encode(to: encoder)
+        case .contentBlockDelta(let event): try event.encode(to: encoder)
+        case .contentBlockStop(let event): try event.encode(to: encoder)
+        case .messageDelta(let event): try event.encode(to: encoder)
+        case .messageStop: try TypeOnlyClaudeStreamEvent(type: "message_stop").encode(to: encoder)
+        case .ping: try TypeOnlyClaudeStreamEvent(type: "ping").encode(to: encoder)
+        }
+    }
+}
+
+private struct TypeOnlyClaudeStreamEvent: Encodable {
+    let type: String
 }
 
 private enum CanonicalBridgeGoldenScenarios {
