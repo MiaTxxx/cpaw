@@ -98,12 +98,12 @@ public static partial class CanonicalRequestMapper
         {
             ClaudeTextMessageContentWire text =>
             [CreateMessage(message.Role, [new CanonicalTextPart(text.Text, [])])],
-            ClaudeBlocksMessageContentWire blocks => MapBlocks(message.Role, blocks.Blocks),
+            ClaudeBlocksMessageContentWire blocks => MapClaudeBlocks(message.Role, blocks.Blocks),
             _ => throw new NotSupportedException(
                 $"Unsupported Claude message content type {message.Content.GetType().Name}."),
         };
 
-    private static ImmutableArray<CanonicalConversationItem> MapBlocks(
+    internal static ImmutableArray<CanonicalConversationItem> MapClaudeBlocks(
         string role,
         IReadOnlyList<ClaudeContentBlockWire> blocks)
     {

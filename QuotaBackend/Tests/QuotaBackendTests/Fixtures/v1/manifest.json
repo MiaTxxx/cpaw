@@ -49,6 +49,12 @@
       "sha256" : "ebf0cef8f317e92005707da179bd948a749b088af208fa521e17cca605c1080b"
     },
     {
+      "id" : "canonical/response/claude/mixed-blocks",
+      "kind" : "json-transform",
+      "path" : "canonical/response/claude/mixed-blocks.json",
+      "sha256" : "206a308778cd426e681609090b7e9fb4793c4cb1083047b11536d19062b0ca79"
+    },
+    {
       "id" : "canonical/response/openai-chat/rich-tool-loop",
       "kind" : "json-transform",
       "path" : "canonical/response/openai-chat/rich-tool-loop.json",

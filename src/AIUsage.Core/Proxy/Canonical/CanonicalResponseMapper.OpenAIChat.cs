@@ -3,7 +3,7 @@ using AIUsage.Core.Proxy.Protocols.OpenAIChat;
 
 namespace AIUsage.Core.Proxy.Canonical;
 
-public static class CanonicalResponseMapper
+public static partial class CanonicalResponseMapper
 {
     public static CanonicalResponse FromOpenAIChat(OpenAIChatCompletionResponseWire response)
     {
