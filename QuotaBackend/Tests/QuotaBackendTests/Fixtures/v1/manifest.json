@@ -34,7 +34,7 @@
       "id" : "canonical/request/openai-chat/content-variants",
       "kind" : "json-transform",
       "path" : "canonical/request/openai-chat/content-variants.json",
-      "sha256" : "b8ed03126babc4c9ac57e940dcad4448f6d6c442606c650acddf530f0bea667b"
+      "sha256" : "64f93cc36adf401dfd1218ea08c2a69214a07892f9c6e574c979841868275104"
     },
     {
       "id" : "canonical/request/openai-chat/empty-defaults",
