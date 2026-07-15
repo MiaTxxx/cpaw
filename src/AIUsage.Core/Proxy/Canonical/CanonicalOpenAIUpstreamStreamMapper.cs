@@ -33,8 +33,11 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
         switch (upstreamEvent)
         {
             case OpenAIUpstreamTextDelta textDelta:
-                CloseReasoningContentIfNeeded(mappedEvents);
-                var textIndex = EnsureTextContentPartStarted(mappedEvents);
+                CloseContentIfNeeded(ref _reasoningContentIndex, mappedEvents);
+                var textIndex = EnsureContentPartStarted(
+                    ref _textContentIndex,
+                    CanonicalStreamPartKind.Text,
+                    mappedEvents);
                 mappedEvents.Add(new CanonicalStreamContentPartDelta(
                     textIndex,
                     CanonicalStreamPartKind.Text,
@@ -44,8 +47,11 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
                 break;
 
             case OpenAIUpstreamReasoningSummaryDelta reasoningDelta:
-                CloseTextContentIfNeeded(mappedEvents);
-                var reasoningIndex = EnsureReasoningContentPartStarted(mappedEvents);
+                CloseContentIfNeeded(ref _textContentIndex, mappedEvents);
+                var reasoningIndex = EnsureContentPartStarted(
+                    ref _reasoningContentIndex,
+                    CanonicalStreamPartKind.Reasoning,
+                    mappedEvents);
                 mappedEvents.Add(new CanonicalStreamContentPartDelta(
                     reasoningIndex,
                     CanonicalStreamPartKind.Reasoning,
@@ -55,8 +61,8 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
                 break;
 
             case OpenAIUpstreamToolCallStarted toolStarted:
-                CloseReasoningContentIfNeeded(mappedEvents);
-                CloseTextContentIfNeeded(mappedEvents);
+                CloseContentIfNeeded(ref _reasoningContentIndex, mappedEvents);
+                CloseContentIfNeeded(ref _textContentIndex, mappedEvents);
                 var toolIndex = EnsureToolContentPartStarted(
                     toolStarted.UpstreamIndex,
                     toolStarted.Id,
@@ -95,8 +101,8 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
                 break;
 
             case OpenAIUpstreamCompleted completed:
-                CloseReasoningContentIfNeeded(mappedEvents);
-                CloseTextContentIfNeeded(mappedEvents);
+                CloseContentIfNeeded(ref _reasoningContentIndex, mappedEvents);
+                CloseContentIfNeeded(ref _textContentIndex, mappedEvents);
                 foreach (var upstreamIndex in _pendingToolArgumentDeltas.Keys.Order())
                 {
                     var pendingContentIndex = EnsureToolContentPartStarted(
@@ -148,40 +154,22 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
             []));
     }
 
-    private long EnsureTextContentPartStarted(
+    private long EnsureContentPartStarted(
+        ref long? contentIndex,
+        CanonicalStreamPartKind kind,
         ImmutableArray<CanonicalStreamEvent>.Builder mappedEvents)
     {
-        if (_textContentIndex is { } existingIndex)
+        if (contentIndex is { } existingIndex)
         {
             return existingIndex;
         }
 
         var index = _nextContentIndex++;
-        _textContentIndex = index;
+        contentIndex = index;
         _openContentIndices.Add(index);
         mappedEvents.Add(new CanonicalStreamContentPartStarted(
             index,
-            CanonicalStreamPartKind.Text,
-            ToolCallId: null,
-            ToolName: null,
-            []));
-        return index;
-    }
-
-    private long EnsureReasoningContentPartStarted(
-        ImmutableArray<CanonicalStreamEvent>.Builder mappedEvents)
-    {
-        if (_reasoningContentIndex is { } existingIndex)
-        {
-            return existingIndex;
-        }
-
-        var index = _nextContentIndex++;
-        _reasoningContentIndex = index;
-        _openContentIndices.Add(index);
-        mappedEvents.Add(new CanonicalStreamContentPartStarted(
-            index,
-            CanonicalStreamPartKind.Reasoning,
+            kind,
             ToolCallId: null,
             ToolName: null,
             []));
@@ -211,27 +199,16 @@ public sealed class CanonicalOpenAIUpstreamStreamMapper
         return index;
     }
 
-    private void CloseTextContentIfNeeded(
+    private void CloseContentIfNeeded(
+        ref long? contentIndex,
         ImmutableArray<CanonicalStreamEvent>.Builder mappedEvents)
     {
-        if (_textContentIndex is not { } index || !_openContentIndices.Remove(index))
+        if (contentIndex is not { } index || !_openContentIndices.Remove(index))
         {
             return;
         }
 
-        _textContentIndex = null;
-        mappedEvents.Add(new CanonicalStreamContentPartStopped(index));
-    }
-
-    private void CloseReasoningContentIfNeeded(
-        ImmutableArray<CanonicalStreamEvent>.Builder mappedEvents)
-    {
-        if (_reasoningContentIndex is not { } index || !_openContentIndices.Remove(index))
-        {
-            return;
-        }
-
-        _reasoningContentIndex = null;
+        contentIndex = null;
         mappedEvents.Add(new CanonicalStreamContentPartStopped(index));
     }
 

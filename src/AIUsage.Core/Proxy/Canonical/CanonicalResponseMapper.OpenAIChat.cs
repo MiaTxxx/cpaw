@@ -43,12 +43,13 @@ public static partial class CanonicalResponseMapper
             return null;
         }
 
-        var cachedTokens = usage.PromptCacheHitTokens
-            ?? usage.PromptTokensDetails?.CachedTokens;
-        var inputTokens = usage.PromptCacheMissTokens
-            ?? (cachedTokens is long cached
-                ? Math.Max(usage.PromptTokens - cached, 0)
-                : usage.PromptTokens);
+        var cachedTokens = OpenAITokenUsageNormalizer.SelectCachedTokens(
+            usage.PromptCacheHitTokens,
+            usage.PromptTokensDetails?.CachedTokens);
+        var inputTokens = OpenAITokenUsageNormalizer.CalculateEffectiveInputTokens(
+            usage.PromptTokens,
+            usage.PromptCacheMissTokens,
+            cachedTokens);
 
         return new CanonicalUsage(
             inputTokens,

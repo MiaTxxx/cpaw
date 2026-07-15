@@ -336,9 +336,10 @@ public static partial class CanonicalResponseMapper
 
         var cachedTokens = usage.InputTokensDetails?.CachedTokens;
         return new CanonicalUsage(
-            cachedTokens is long cached
-                ? Math.Max(usage.InputTokens - cached, 0)
-                : usage.InputTokens,
+            OpenAITokenUsageNormalizer.CalculateEffectiveInputTokens(
+                usage.InputTokens,
+                explicitMissTokens: null,
+                cachedTokens),
             usage.OutputTokens,
             usage.TotalTokens,
             CacheCreationInputTokens: null,

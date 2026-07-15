@@ -27,9 +27,12 @@ public sealed record OpenAIUpstreamUsage(
     long? PromptCacheMissTokens,
     long? CachedTokens)
 {
-    public long? EffectiveCachedTokens => PromptCacheHitTokens ?? CachedTokens;
+    public long? EffectiveCachedTokens => OpenAITokenUsageNormalizer.SelectCachedTokens(
+        PromptCacheHitTokens,
+        CachedTokens);
 
-    public long EffectiveInputTokens =>
-        PromptCacheMissTokens
-        ?? Math.Max(PromptTokens - (EffectiveCachedTokens ?? 0), 0);
+    public long EffectiveInputTokens => OpenAITokenUsageNormalizer.CalculateEffectiveInputTokens(
+        PromptTokens,
+        PromptCacheMissTokens,
+        EffectiveCachedTokens);
 }
