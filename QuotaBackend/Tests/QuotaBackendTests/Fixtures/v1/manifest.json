@@ -52,7 +52,7 @@
       "id" : "canonical/response/claude-builder/boundary-lossy",
       "kind" : "json-transform",
       "path" : "canonical/response/claude-builder/boundary-lossy.json",
-      "sha256" : "f574c3c1a9c228461757c541795fc692977f514ac895543867fb6c2d69bb974f"
+      "sha256" : "1290c42d1bc5e0cc90c99e7091d144de9e7c4fa313e45168bd5443a9fd5a717f"
     },
     {
       "id" : "canonical/response/claude-builder/rich-content",
