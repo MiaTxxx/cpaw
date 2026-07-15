@@ -897,6 +897,453 @@ enum ContractsProxyGoldenInputs {
     }
     """#
 
+    static let codexResponsesHostedCallIDMatrixJSON = #"""
+    {
+      "id": "resp_fixture_hosted_matrix_001",
+      "object": "response",
+      "created_at": 1893553445,
+      "model": "gpt-fixture-hosted-matrix",
+      "output": [
+        {
+          "id": "computer_item_001",
+          "type": "computer_call",
+          "call_id": "call_computer_001",
+          "status": "IN_PROGRESS",
+          "action": { "type": "click", "x": 7, "y": 9 },
+          "extra_marker": "discard-computer-call"
+        },
+        {
+          "id": "computer_output_001",
+          "type": "computer_call_output",
+          "call_id": "call_computer_001",
+          "output": {
+            "type": "computer_screenshot",
+            "file_id": "file_screenshot_001"
+          },
+          "extra_marker": "discard-computer-output"
+        },
+        {
+          "id": "image_generation_001",
+          "type": "image_generation_call",
+          "status": "FAILED",
+          "result": "image-result-base64",
+          "extra_marker": "discard-image-generation"
+        },
+        {
+          "id": "code_interpreter_001",
+          "type": "code_interpreter_call",
+          "status": "incomplete",
+          "code": "print('fixture')",
+          "container_id": "container_fixture_001",
+          "outputs": [
+            { "type": "logs", "logs": "fixture log" },
+            { "type": "image", "url": "https://example.test/fixture.png" },
+            { "type": "future_code_output" }
+          ],
+          "extra_marker": "discard-code-interpreter"
+        },
+        {
+          "id": "tool_search_call_001",
+          "type": "tool_search_call",
+          "call_id": "call_tool_search_001",
+          "arguments": { "query": "fixture" },
+          "execution": "hosted",
+          "status": "completed",
+          "extra_marker": "discard-tool-search-call"
+        },
+        {
+          "id": "tool_search_output_001",
+          "type": "tool_search_output",
+          "call_id": "call_tool_search_001",
+          "execution": "hosted",
+          "status": "completed",
+          "tools": [],
+          "extra_marker": "discard-tool-search-output"
+        },
+        {
+          "id": "local_shell_call_001",
+          "type": "local_shell_call",
+          "call_id": "call_local_shell_001",
+          "status": "in_progress",
+          "action": {
+            "type": "exec",
+            "command": ["pwd"],
+            "env": { "FIXTURE": "1" },
+            "timeout_ms": 1200.5,
+            "user": "fixture-user",
+            "working_directory": "/fixture"
+          },
+          "extra_marker": "discard-local-shell-call"
+        },
+        {
+          "id": "local_shell_output_001",
+          "type": "local_shell_call_output",
+          "output": "fixture local shell output",
+          "status": "FUTURE_STATE",
+          "extra_marker": "discard-local-shell-output"
+        },
+        {
+          "id": "shell_call_001",
+          "type": "shell_call",
+          "call_id": "call_shell_001",
+          "status": "completed",
+          "action": {
+            "commands": ["echo fixture"],
+            "max_output_length": 4096,
+            "timeout_ms": 2000
+          },
+          "environment": {
+            "type": "container",
+            "container_id": "container_fixture_002"
+          },
+          "extra_marker": "discard-shell-call"
+        },
+        {
+          "id": "shell_output_001",
+          "type": "shell_call_output",
+          "call_id": "call_shell_001",
+          "max_output_length": 4096,
+          "status": "completed",
+          "output": [
+            {
+              "outcome": { "type": "exit", "exit_code": 0 },
+              "stdout": "fixture stdout",
+              "stderr": ""
+            },
+            {
+              "outcome": { "type": "timeout" }
+            }
+          ],
+          "extra_marker": "discard-shell-output"
+        },
+        {
+          "id": "apply_patch_call_001",
+          "type": "apply_patch_call",
+          "call_id": "call_apply_patch_001",
+          "status": "in_progress",
+          "operation": {
+            "type": "update_file",
+            "path": "fixture.txt",
+            "diff": "@@ fixture @@"
+          },
+          "extra_marker": "discard-apply-patch-call"
+        },
+        {
+          "id": "apply_patch_output_001",
+          "type": "apply_patch_call_output",
+          "call_id": "call_apply_patch_001",
+          "status": "completed",
+          "output": "Done!",
+          "extra_marker": "discard-apply-patch-output"
+        },
+        {
+          "id": "mcp_list_tools_001",
+          "type": "mcp_list_tools",
+          "server_label": "fixture-server",
+          "tools": [],
+          "error": null,
+          "extra_marker": "discard-mcp-list"
+        },
+        {
+          "id": "mcp_approval_request_001",
+          "type": "mcp_approval_request",
+          "arguments": "{\"path\":\"fixture.txt\"}",
+          "name": "read_fixture",
+          "server_label": "fixture-server",
+          "extra_marker": "discard-mcp-approval-request"
+        },
+        {
+          "id": "mcp_approval_response_001",
+          "type": "mcp_approval_response",
+          "approval_request_id": "mcp_approval_request_001",
+          "approve": false,
+          "reason": null,
+          "extra_marker": "discard-mcp-approval-response"
+        },
+        {
+          "id": "mcp_call_001",
+          "type": "mcp_call",
+          "arguments": "{}",
+          "name": "lookup_fixture",
+          "server_label": "fixture-server",
+          "approval_request_id": "mcp_approval_request_001",
+          "output": "fixture mcp output",
+          "extra_marker": "discard-mcp-call"
+        },
+        {
+          "id": "custom_tool_call_001",
+          "type": "custom_tool_call",
+          "call_id": "call_custom_tool_001",
+          "input": "fixture custom input",
+          "name": "fixture_custom_tool",
+          "status": "in_progress",
+          "namespace": "fixture",
+          "extra_marker": "discard-custom-call"
+        },
+        {
+          "id": "custom_tool_output_001",
+          "type": "custom_tool_call_output",
+          "call_id": "call_custom_tool_001",
+          "output": "fixture custom output",
+          "status": null,
+          "extra_marker": "discard-custom-output"
+        }
+      ],
+      "status": "completed"
+    }
+    """#
+
+    static let codexResponsesStopPriorityMatrixJSON = #"""
+    {
+      "cases": [
+        {
+          "label": "incomplete-empty",
+          "response": {
+            "id": "stop_incomplete_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "incomplete"
+          }
+        },
+        {
+          "label": "incomplete-function",
+          "response": {
+            "id": "stop_incomplete_function",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "type": "function_call",
+                "call_id": "call_stop_001",
+                "name": "fixture",
+                "arguments": "{}"
+              }
+            ],
+            "status": "incomplete"
+          }
+        },
+        {
+          "label": "completed-function",
+          "response": {
+            "id": "stop_completed_function",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "type": "function_call",
+                "call_id": "call_stop_002",
+                "name": "fixture",
+                "arguments": "{}"
+              }
+            ],
+            "status": "completed"
+          }
+        },
+        {
+          "label": "failed-function",
+          "response": {
+            "id": "stop_failed_function",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "type": "function_call",
+                "call_id": "call_stop_003",
+                "name": "fixture",
+                "arguments": "{}"
+              }
+            ],
+            "status": "failed"
+          }
+        },
+        {
+          "label": "failed-empty",
+          "response": {
+            "id": "stop_failed_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "failed"
+          }
+        },
+        {
+          "label": "completed-empty",
+          "response": {
+            "id": "stop_completed_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "completed"
+          }
+        },
+        {
+          "label": "future-status-empty",
+          "response": {
+            "id": "stop_future_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "future_status"
+          }
+        },
+        {
+          "label": "missing-status-empty",
+          "response": {
+            "id": "stop_missing_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": []
+          }
+        },
+        {
+          "label": "uppercase-incomplete-empty",
+          "response": {
+            "id": "stop_upper_incomplete_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "INCOMPLETE"
+          }
+        },
+        {
+          "label": "uppercase-failed-empty",
+          "response": {
+            "id": "stop_upper_failed_empty",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [],
+            "status": "FAILED"
+          }
+        },
+        {
+          "label": "in-progress-pending-output",
+          "response": {
+            "id": "stop_in_progress_output",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "computer_output_stop_001",
+                "type": "computer_call_output",
+                "call_id": "call_computer_stop_001",
+                "output": { "type": "computer_screenshot" },
+                "status": "in_progress"
+              }
+            ],
+            "status": "in_progress"
+          }
+        },
+        {
+          "label": "incomplete-pending-output",
+          "response": {
+            "id": "stop_incomplete_output",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "computer_output_stop_002",
+                "type": "computer_call_output",
+                "call_id": "call_computer_stop_002",
+                "output": { "type": "computer_screenshot" },
+                "status": "in_progress"
+              }
+            ],
+            "status": "incomplete"
+          }
+        },
+        {
+          "label": "incomplete-terminal-call",
+          "response": {
+            "id": "stop_incomplete_terminal_call",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "computer_call_stop_001",
+                "type": "computer_call",
+                "call_id": "call_computer_stop_003",
+                "status": "COMPLETED"
+              }
+            ],
+            "status": "incomplete"
+          }
+        },
+        {
+          "label": "incomplete-custom-call",
+          "response": {
+            "id": "stop_incomplete_custom_call",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "custom_call_stop_001",
+                "type": "custom_tool_call",
+                "call_id": "call_custom_stop_001",
+                "input": "",
+                "name": "fixture_custom",
+                "status": "in_progress"
+              }
+            ],
+            "status": "incomplete"
+          }
+        },
+        {
+          "label": "uppercase-incomplete-pending-call",
+          "response": {
+            "id": "stop_upper_incomplete_pending",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "computer_call_stop_002",
+                "type": "computer_call"
+              }
+            ],
+            "status": "INCOMPLETE"
+          }
+        },
+        {
+          "label": "pause-before-max-and-tool-use",
+          "response": {
+            "id": "stop_pause_priority",
+            "object": "response",
+            "created_at": 0,
+            "model": "gpt-fixture-stop",
+            "output": [
+              {
+                "id": "computer_call_stop_003",
+                "type": "computer_call"
+              },
+              {
+                "type": "function_call",
+                "call_id": "call_stop_004",
+                "name": "fixture",
+                "arguments": "{}"
+              }
+            ],
+            "status": "incomplete"
+          }
+        }
+      ]
+    }
+    """#
+
     static let codexResponsesCompletedEventJSON = #"""
     {
       "type": "response.completed",

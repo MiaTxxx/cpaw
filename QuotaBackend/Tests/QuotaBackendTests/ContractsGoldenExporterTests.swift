@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 112)
+        XCTAssertEqual(cases.count, 114)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -229,6 +229,14 @@ private enum ContractsV1GoldenCatalog {
             OpenAIResponsesResponse.self,
             from: ContractsProxyGoldenInputs.codexResponsesCanonicalVariantsResponseJSON
         )
+        let codexResponsesHostedCallIDMatrix = try decode(
+            AnyCodable.self,
+            from: ContractsProxyGoldenInputs.codexResponsesHostedCallIDMatrixJSON
+        )
+        let codexResponsesStopPriorityMatrix = try decode(
+            AnyCodable.self,
+            from: ContractsProxyGoldenInputs.codexResponsesStopPriorityMatrixJSON
+        )
         let codexResponsesCompleted = try decode(
             OpenAIResponsesCompletedEvent.self,
             from: ContractsProxyGoldenInputs.codexResponsesCompletedEventJSON
@@ -336,6 +344,20 @@ private enum ContractsV1GoldenCatalog {
                 input: codexResponsesResponse,
                 sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIResponsesResponse
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/openai-responses/hosted-call-id-matrix",
+                path: "canonical/response/openai-responses/hosted-call-id-matrix.json",
+                input: codexResponsesHostedCallIDMatrix,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapRawOpenAIResponsesResponse
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/openai-responses/stop-priority-matrix",
+                path: "canonical/response/openai-responses/stop-priority-matrix.json",
+                input: codexResponsesStopPriorityMatrix,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapOpenAIResponsesStopPriorityMatrix
             ),
             .throwingBehaviorTransform(
                 id: "canonical/request/openai-chat/empty-defaults",
@@ -1734,9 +1756,46 @@ private enum CanonicalRequestGoldenScenarios {
         return project(canonical)
     }
 
+    static func mapRawOpenAIResponsesResponse(_ raw: AnyCodable) throws -> AnyCodable {
+        let response = try decodeRaw(OpenAIResponsesResponse.self, from: raw)
+        return try mapOpenAIResponsesResponse(response)
+    }
+
+    static func mapOpenAIResponsesStopPriorityMatrix(_ raw: AnyCodable) throws -> AnyCodable {
+        let matrix = try decodeRaw(OpenAIResponsesStopPriorityMatrix.self, from: raw)
+        let mapper = CanonicalResponseMapper()
+        let results = try matrix.cases.map { fixtureCase in
+            let response = try mapper.mapOpenAIResponses(fixtureCase.response)
+            return AnyCodable([
+                "label": AnyCodable(fixtureCase.label),
+                "reason": AnyCodable(response.stop.reason.value),
+            ] as [String: AnyCodable])
+        }
+        return AnyCodable([
+            "results": AnyCodable(results),
+        ] as [String: AnyCodable])
+    }
+
     static func mapClaudeResponse(_ response: ClaudeMessageResponse) throws -> AnyCodable {
         let canonical = try CanonicalResponseMapper().mapClaude(response)
         return project(canonical)
+    }
+
+    private static func decodeRaw<Value: Decodable>(
+        _ type: Value.Type,
+        from raw: AnyCodable
+    ) throws -> Value {
+        let data = try JSONEncoder().encode(raw)
+        return try JSONDecoder().decode(type, from: data)
+    }
+
+    private struct OpenAIResponsesStopPriorityMatrix: Decodable {
+        let cases: [OpenAIResponsesStopPriorityCase]
+    }
+
+    private struct OpenAIResponsesStopPriorityCase: Decodable {
+        let label: String
+        let response: OpenAIResponsesResponse
     }
 
     private static func project(_ request: CanonicalRequest) -> AnyCodable {
