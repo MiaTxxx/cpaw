@@ -6,7 +6,7 @@ import XCTest
 final class ContractsGoldenExporterTests: XCTestCase {
     func testCatalogEncodesDeterministically() throws {
         let cases = try ContractsV1GoldenCatalog.makeCases()
-        XCTAssertEqual(cases.count, 109)
+        XCTAssertEqual(cases.count, 110)
 
         for fixtureCase in cases {
             let first = try fixtureCase.render()
@@ -304,6 +304,13 @@ private enum ContractsV1GoldenCatalog {
                 input: CanonicalRequestGoldenScenarios.openAIChatRichToolLoop,
                 sourceTest: "CanonicalMiddleLayerTests.testCanonicalOpenAIChatRequestMappingSeparatesSystemAndToolMessages",
                 transform: CanonicalRequestGoldenScenarios.mapOpenAIChat
+            ),
+            .throwingBehaviorTransform(
+                id: "canonical/response/claude/mixed-blocks",
+                path: "canonical/response/claude/mixed-blocks.json",
+                input: CanonicalRequestGoldenScenarios.claudeResponseMixedBlocks,
+                sourceTest: "ContractsGoldenExporterTests.testCatalogEncodesDeterministically",
+                transform: CanonicalRequestGoldenScenarios.mapClaudeResponse
             ),
             .throwingBehaviorTransform(
                 id: "canonical/response/openai-chat/rich-tool-loop",
@@ -1617,6 +1624,78 @@ private enum CanonicalRequestGoldenScenarios {
         )
     )
 
+    static let claudeResponseMixedBlocks = ClaudeMessageResponse(
+        id: "msg_fixture_canonical_response_001",
+        role: "assistant",
+        content: [
+            .text(ClaudeTextBlock(
+                text: "Preface before reasoning.",
+                cacheControl: ["type": AnyCodable("ephemeral")]
+            )),
+            .document(ClaudeDocumentBlock(
+                source: [
+                    "type": AnyCodable("text"),
+                    "text": AnyCodable("Inline response document"),
+                ],
+                title: "Response fixture",
+                context: "Preserve document metadata",
+                citations: AnyCodable([
+                    "enabled": AnyCodable(true),
+                ] as [String: AnyCodable]),
+                cacheControl: ["type": AnyCodable("ephemeral")]
+            )),
+            .unknown(ClaudeUnknownContentBlock(
+                type: "future_response_content",
+                payload: [
+                    "type": AnyCodable("future_response_content"),
+                    "marker": AnyCodable("fixture-unknown-response"),
+                ]
+            )),
+            .thinking(ClaudeThinkingBlock(
+                thinking: "Need the fixture tool.",
+                signature: "sig_fixture_response_001"
+            )),
+            .text(ClaudeTextBlock(text: "Calling the tool now.")),
+            .toolUse(ClaudeToolUseBlock(
+                id: "toolu_fixture_response_001",
+                name: "lookup_fixture",
+                input: ["query": AnyCodable("quota")]
+            )),
+            .redactedThinking(ClaudeRedactedThinkingBlock(
+                data: "<fixture-response-redacted>"
+            )),
+            .toolResult(ClaudeToolResultBlock(
+                toolUseId: "toolu_fixture_response_001",
+                contentBlocks: [
+                    .text(ClaudeTextBlock(text: "First tool line")),
+                    .document(ClaudeDocumentBlock(source: [
+                        "type": AnyCodable("url"),
+                        "url": AnyCodable("https://example.test/tool-result.txt"),
+                    ])),
+                    .text(ClaudeTextBlock(text: "Second tool line")),
+                    .unknown(ClaudeUnknownContentBlock(
+                        type: "future_tool_result_content",
+                        payload: [
+                            "type": AnyCodable("future_tool_result_content"),
+                            "value": AnyCodable(7),
+                        ]
+                    )),
+                ],
+                isError: true
+            )),
+            .text(ClaudeTextBlock(text: "Tail after tool result.")),
+        ],
+        model: "claude-fixture-canonical-response",
+        stopReason: "pause_turn",
+        stopSequence: "<fixture-stop-sequence>",
+        usage: ClaudeUsage(
+            inputTokens: 4_294_967_296,
+            outputTokens: 513,
+            cacheCreationInputTokens: 64,
+            cacheReadInputTokens: 32
+        )
+    )
+
     static func mapClaude(_ request: ClaudeMessageRequest) throws -> AnyCodable {
         let canonical = try CanonicalRequestMapper().mapClaude(request)
         return project(canonical)
@@ -1629,6 +1708,11 @@ private enum CanonicalRequestGoldenScenarios {
 
     static func mapOpenAIChatResponse(_ response: OpenAIChatCompletionResponse) throws -> AnyCodable {
         let canonical = try CanonicalResponseMapper().mapOpenAIChatCompletions(response)
+        return project(canonical)
+    }
+
+    static func mapClaudeResponse(_ response: ClaudeMessageResponse) throws -> AnyCodable {
+        let canonical = try CanonicalResponseMapper().mapClaude(response)
         return project(canonical)
     }
 
